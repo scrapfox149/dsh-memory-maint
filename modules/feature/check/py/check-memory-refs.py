@@ -44,6 +44,10 @@ for key, where in sorted(refs.items()):
     # 跳过通配符截断（如 "tools/memory-*.py" 被正则切出 "tools/memory-"）
     if key.endswith(("-", "_", "/")):
         continue
+    # 跳过占位符与示例（2026-11-23）：记忆正文里常写 "tools/xxx.py"、
+    # "docs/<名字>.md" 这类模板文本，它们不是真引用，报了就是永久假红。
+    if "xxx" in key.lower() or "*" in key or "<" in key:
+        continue
     p = os.path.join(WS, key.replace("/", os.sep))
     if not os.path.exists(p):
         missing.append((key, where))
