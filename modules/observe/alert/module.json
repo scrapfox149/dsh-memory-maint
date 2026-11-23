@@ -1,0 +1,11 @@
+{
+  "tool": "mem_alert",
+  "description": "插件告警：查看各模块上报的错误与降级记录（缺列、异常、数据异常），确认插件有没有在带病运行",
+  "commands": {
+    "list": "py/memory-alert.py",
+    "clear": {
+      "script": "py/memory-alert.py",
+      "args": ["--clear-errors", "--yes"]
+    }
+  }
+}

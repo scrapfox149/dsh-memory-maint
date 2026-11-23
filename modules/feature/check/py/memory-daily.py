@@ -1,0 +1,181 @@
+# -*- coding: utf-8 -*-
+"""日常体检：不只报状态，还告诉你「今天该做什么」。
+
+演进（2026-11-19）：
+  v1 只汇总 5 个检查的原始输出 → 判定太糙，3 个红里 1 个真问题
+  v2 修正判定（建议≠必须、降级≠异常、只看本次新增）→ 全绿但只是"镜子"
+  v3 **改成分区**：该做的（按优先级 + 带动作）/ 不用管的（说明原因）/ 其余正常
+
+设计：只读；任一项失败继续；`--verbose` 展开明细；`--quiet` 只列该做的。
+"""
+import os
+import subprocess
+import sys
+
+if sys.stdout is not None:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+_here = os.path.dirname(os.path.abspath(__file__))
+for _up in range(1, 5):
+    _pc = os.path.join(_here, *([".."] * _up), "py-core")
+    if os.path.isdir(_pc):
+        sys.path.insert(0, _pc)
+        break
+
+from mem_db import DB, count_status_sql  # noqa: E402
+
+ROOT = _here
+for _ in range(6):
+    if os.path.isdir(os.path.join(ROOT, "modules")):
+        break
+    ROOT = os.path.dirname(ROOT)
+
+PY = sys.executable
+
+
+def run(rel_script, args=None, timeout=180):
+    path = os.path.join(ROOT, rel_script)
+    if not os.path.exists(path):
+        return False, "脚本不存在: " + rel_script
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONPATH"] = os.path.join(ROOT, "py-core")
+    try:
+        r = subprocess.run([PY, path] + (args or []), capture_output=True,
+                           text=True, encoding="utf-8", errors="replace",
+                           timeout=timeout, env=env)
+        return r.returncode == 0, ((r.stdout or "") + (r.stderr or "")).strip()
+    except Exception as exc:
+        return False, str(exc)
+
+
+def grep_int(text, pattern, default=0):
+    import re
+    m = re.search(pattern, text or "")
+    return int(m.group(1)) if m else default
+
+
+def main():
+    verbose = "--verbose" in sys.argv or "-v" in sys.argv
+    quiet = "--quiet" in sys.argv or "-q" in sys.argv
+
+    todo = []      # (优先级 1-9 小在前, 标题, 动作提示, 明细)
+    ignore = []    # (标题, 为什么不用管)
+    okay = []      # 一句话
+
+    # ---- 1. 到期约定（最高优先级）----
+    ok, out = run("modules/feature/check/py/memory-promises.py")
+    # promises 的输出形如「今天: 2026-11-19 | 带期限的约定: 1 条」+「[剩 179 天] ...」
+    # 不能抓「今天:」后面的数字（那是年份），要数「剩 0 天」和「已过期」的行
+    n_due = len([l for l in out.split("\n") if "剩 0 天" in l])
+    n_over = len([l for l in out.split("\n") if "已过期" in l])
+    if n_over:
+        todo.append((1, "⏰ 已过期约定 %d 条" % n_over,
+                     "→ 跑 `mem_check promises` 看是哪些，该做完的做完、该改期的改期", out))
+    elif n_due:
+        todo.append((2, "⏰ 今天到期约定 %d 条" % n_due,
+                     "→ 跑 `mem_check promises` 看详情", out))
+
+    # ---- 2. 写作规则：只有「必须修」算该做 ----
+    ok, out = run("modules/feature/check/py/memory-audit.py")
+    n_must = grep_int(out, r"必须修（(\d+)）", 999)
+    n_minor = grep_int(out, r"建议修（(\d+)）", 0)
+    if n_must:
+        todo.append((3, "📝 必须修 %d 条写作问题" % n_must,
+                     "→ 跑 `mem_check audit` 看明细", out))
+    if n_minor:
+        ignore.append(("audit 建议修 %d 条" % n_minor, "都是「偏长」这类，不影响检索"))
+
+    # ---- 3. 文件引用：真问题 ----
+    ok, out = run("modules/feature/check/py/check-memory-refs.py")
+    n_missing = grep_int(out, r"不存在的:\s*(\d+)")
+    if n_missing:
+        todo.append((2, "🔗 %d 个文件引用失效" % n_missing,
+                     "→ 跑 `mem_check refs` 看是哪些记忆指向了不存在的文件", out))
+    else:
+        okay.append("文件引用 %s 个全部有效" % (grep_int(out, r"文件路径:\s*(\d+)") or "?"))
+
+    # ---- 4. 自检 ----
+    ok, out = run("modules/observe/status/py/memory-status.py")
+    if "一切正常" not in out:
+        todo.append((1, "🔧 插件自检不通过",
+                     "→ 跑 `mem_status` 看哪块有问题", out))
+    else:
+        okay.append("插件自检 %s" % (("模块%s" % grep_int(out, r"模块\s*(\d+)")) if "模块" in out else "通过"))
+
+    # ---- 5. 告警：只看本次新增异常 ----
+    err_file = os.path.join(os.environ.get("DSH_MEMORY_LOG_DIR") or os.path.join(ROOT, "state"),
+                            "errors.jsonl")
+
+    def exc_count(path):
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                return sum(1 for l in f if '"exception"' in l or '"anomaly"' in l)
+        except Exception:
+            return 0
+
+    before = exc_count(err_file)
+    ok, out = run("modules/observe/alert/py/memory-alert.py")
+    new_exc = max(0, exc_count(err_file) - before)
+    if new_exc:
+        todo.append((1, "🚨 本次新增异常 %d 条" % new_exc,
+                     "→ 跑 `mem_alert` 看具体是什么", out))
+    n_deg = grep_int(out, r"降级[^\d]*\s*(\d+)")
+    if n_deg:
+        ignore.append(("告警里的降级 %d 条" % n_deg, "缺列补 None，是正常现象"))
+    if not new_exc:
+        okay.append("本次无新异常")
+
+    # ---- 6. signal 噪音说明 ----
+    ok, sig = run("modules/feature/check/py/memory-signal-check.py")
+    n_sig = grep_int(sig, r"共\s*(\d+)\s*条")
+    if n_sig:
+        ignore.append(("signal %d 条" % n_sig, "长文没命中信号词表，多数是语义重要但措辞不同"))
+
+    # ---- 输出 ----
+    print("=== 日常体检（%s）===" % os.path.basename(DB))
+    print()
+
+    if todo:
+        todo.sort(key=lambda x: x[0])
+        print("今天该做的（%d 件，按优先级）：" % len(todo))
+        for pri, title, action, detail in todo:
+            print("  %s" % title)
+            print("     %s" % action)
+            if verbose:
+                for l in detail.split("\n")[:10]:
+                    if l.strip():
+                        print("       " + l.strip()[:96])
+        print()
+    else:
+        if not quiet:
+            print("今天该做的：没有 ✅")
+            print()
+
+    if ignore and not quiet:
+        print("不用管的：")
+        for title, why in ignore:
+            print("  · %s —— %s" % (title, why))
+        print()
+
+    if not quiet:
+        print("其他：%s" % " / ".join(okay) if okay else "其他：（无）")
+        print()
+
+    cnt = count_status_sql()
+    total = sum(v["active"] for v in cnt.values())
+    print("记忆库：%d 条 active" % total)
+    if not quiet:
+        print("（忘了动作名就跑 `mem_check help`，列出全部 31 个动作）")
+    if todo:
+        print("结论：⚠ %d 件事要做" % len(todo))
+    else:
+        print("结论：✅ 没事要做")
+    return 0 if not todo else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

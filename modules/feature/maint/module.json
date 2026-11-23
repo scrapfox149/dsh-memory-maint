@@ -1,0 +1,14 @@
+{
+  "tool": "mem_maint",
+  "description": "记忆库维护筛查（只读）：去重、衰减、变更摘要、全局整理、索引、时间线、图谱",
+  "commands": {
+    "dedup": "py/memory-dedup.py",
+    "decay": "py/memory-decay.py",
+    "changelog": "py/memory-changelog.py",
+    "dream": "py/memory-global-dream.py",
+    "index": "py/memory-index.py",
+    "timeline": "py/memory-timeline.py",
+    "map": "py/memory-map.py",
+    "mapexport": "py/memory-map-export.py"
+  }
+}

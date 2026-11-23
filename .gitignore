@@ -1,0 +1,13 @@
+﻿# 运行时状态（日志、错误记录）不进版本库，但留在磁盘
+state/
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+# 测试临时库
+*.db
+*.db-shm
+*.db-wal
+# 编辑器
+.vscode/
+.idea/

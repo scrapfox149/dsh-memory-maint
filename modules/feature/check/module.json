@@ -1,0 +1,19 @@
+{
+  "tool": "mem_check",
+  "description": "记忆库体检（只读）：写作规则、健康、文件引用、AGENTS 一致性、权重、来源、归档",
+  "commands": {
+    "daily": "py/memory-daily.py",
+    "help": "py/memory-help.py",
+    "audit": "py/memory-audit.py",
+    "health": "py/memory-health.py",
+    "refs": "py/check-memory-refs.py",
+    "agents": "py/check-agents.py",
+    "agentsmem": "py/check-agents-memory.py",
+    "signal": "py/memory-signal-check.py",
+    "source": "py/memory-source-check.py",
+    "archive": "py/memory-archive-check.py",
+    "promises": "py/memory-promises.py",
+    "sample": "py/memory-sample.py",
+    "weight2": "py/memory-weight-check2.py"
+  }
+}

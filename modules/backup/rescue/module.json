@@ -1,0 +1,8 @@
+{
+  "tool": "mem_backup",
+  "description": "备份层：把记忆导出成格式无关的纯文本（救生圈），或从导出重建库（救生衣）。两个脚本都是自包含的——不依赖插件、不依赖契约层，插件坏掉时从归档里拷出来照样能跑。",
+  "commands": {
+    "export": "py/memory-export.py",
+    "restore": "py/memory-restore.py"
+  }
+}

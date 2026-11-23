@@ -1,0 +1,7 @@
+{
+  "tool": "mem_status",
+  "description": "插件自检：报当前状态（模块/脚本清单、契约层、库连通与条目统计）和有没有毛病（脚本语法错、缺文件、库连不上）",
+  "commands": {
+    "status": "py/memory-status.py"
+  }
+}

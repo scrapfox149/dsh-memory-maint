@@ -1,0 +1,6 @@
+# dsh-memory-maint bundle patch: 把本插件插入 profile 的层栈。
+# 安装方式：在 profile 的依赖里加本包，或由 dsh-m 登记。
+# 行里用包名引用，Node 解析时会找到已安装的代码。
+- insert:
+    - id: dsh-memory-maint
+      name: 'dsh-memory-maint'

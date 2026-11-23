@@ -1,0 +1,11 @@
+{
+  "tool": "mem_query",
+  "description": "记忆库查询：关系展开、多跳检索、全文搜索、导出当前",
+  "commands": {
+    "expand": "py/memory-expand.py",
+    "hipporag": "py/memory-hipporag.py",
+    "file": "py/memory-file-search.py",
+    "dump": "py/memory-dump-active.py",
+    "people": "py/memory-people.py"
+  }
+}
