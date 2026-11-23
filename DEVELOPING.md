@@ -1,4 +1,4 @@
-# 开发与维护规则（DEVELOPING.md）
+﻿# 开发与维护规则（DEVELOPING.md）
 
 > 这是 `dsh-memory-maint` 的开发/更新规范。**每次改这个插件前后，照这里逐条对一遍。**
 > 最后更新：2026-11-18
@@ -100,14 +100,14 @@ python test-mem-plugin.py          # 冒烟：28 项必须全绿
 ```bash
 python test-mem-plugin.py          # 冒烟
 python tools/mem.py list           # 确认分组与命令列表
-python tools/mem.py status status  # 自检
+python modules/observe/status/py/memory-status.py   # 自检（mem_status 不在 CLI 分组里）
 ```
 
 ### 完整检查（改架构 / 加层 / 动 lib/index.js）
 ```bash
 python test-mem-plugin.py          # ① 冒烟
 python tools/mem.py list           # ② CLI 分组能发现
-python tools/mem.py status status  # ③ 自检
+python modules/observe/status/py/memory-status.py   # ③ 自检
 # ④ Node 工具注册（用 node 模拟 apply）
 # ⑤ 外部调用链：backup-memory.ps1 等能否跑通
 ```
@@ -194,7 +194,7 @@ python tools/mem.py check          # 全局体检 11 项零异常
 ## 八、上线前检查清单
 
 - [ ] `python test-mem-plugin.py` → 28/28
-- [ ] `python tools/mem.py status status` → 一切正常
+- [ ] `python modules/observe/status/py/memory-status.py` → 一切正常
 - [ ] `python tools/mem.py check` → 11 项零异常
 - [ ] `python check-memory-refs.py` → 不存在的 0
 - [ ] `backup-memory.ps1` → 救生圈同步 4 个 + 产物 mtime 刷新
