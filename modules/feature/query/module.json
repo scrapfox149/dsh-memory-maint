@@ -7,6 +7,7 @@
     "file": "py/memory-file-search.py",
     "dump": "py/memory-dump-active.py",
     "people": "py/memory-people.py",
-    "why": "py/memory-why.py"
+    "why": "py/memory-why.py",
+    "project": "py/memory-project.py"
   }
 }
