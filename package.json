@@ -27,7 +27,8 @@
     "CHANGELOG.md",
     "config.json",
     "start-checklist.md",
-    "ROADMAP.md"
+    "ROADMAP.md",
+    "CONFIG.md"
   ],
   "dsh": {
     "bundle": {
