@@ -78,6 +78,33 @@ def export_dir():
     return os.environ.get("DSH_MEMORY_EXPORT") or sub("memory-export")
 
 
+# ⚠ 下面这个函数的逻辑要和内存-镜像保持一致：
+#   `lib/index.js` 的 `PLUGIN_CONFIG`（Node 侧读同一份 config.json）
+#   `modules/backup/rescue/py/*.py` 的两个内联 `_ws()`（救生圈保持自包含，不 import 本模块）
+def agent_name():
+    """AI 的名字：config.json 的 `agent.name`（默认「鱼」）。
+
+    2026-11-24 用户提：恢复文档里写死了「鱼」，别人不一定叫这个。
+    **改成可配**——不配就用默认，换名字不影响任何数据。
+    优先级：环境变量 DSH_AGENT_NAME > config.json 的 agent.name > "鱼"
+    """
+    env = os.environ.get("DSH_AGENT_NAME")
+    if env:
+        return env
+    try:
+        import json
+        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "config.json")
+        if os.path.isfile(p):
+            with open(p, encoding="utf-8") as f:
+                v = (json.load(f).get("agent") or {}).get("name")
+            if v:
+                return str(v)
+    except Exception:
+        pass
+    return "DeepSeek"   # 通用默认；本机用 config.json 的 agent.name 覆盖成「鱼」
+
+
 if __name__ == "__main__":
     # 自测：从不同 cwd 打印算出来的根
     print("cwd            =", os.getcwd())

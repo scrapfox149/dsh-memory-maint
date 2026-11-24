@@ -62,5 +62,9 @@
     "snapshotDir": "E:\\DSH\\memory\\snapshots",
     "historyDir": "E:\\DSH\\memory\\archive\\meow\\history",
     "backupLog": "E:\\DSH\\memory\\backup.log"
+  },
+  "agent": {
+    "_comment": "AI 的名字。备份/恢复文档里会用它；不配就用默认的「鱼」。换名字不影响任何数据。",
+    "name": "鱼"
   }
 }
