@@ -22,7 +22,13 @@ if sys.stdout is not None:
     except Exception:
         pass
 
+import platform
+
 WS = workspace_root()
+# 2026-11-24：这个脚本查的是**本机设施**（Windows 计划任务、E:\DSH 归档），
+# 在别的平台上"查不到"不是故障，是环境不同。所以按平台分流：
+#   Windows → 全查；其它 → 只查 AGENTS.md 的引用一致性，归档类标「跳过」。
+IS_WINDOWS = platform.system() == "Windows"
 TASKS_DIR = r"C:\Windows\System32\Tasks"
 ARCHIVES = [r"E:\DSH\memory\archive", r"D:\FISH-BACKUP_鱼的记忆_勿删"]
 SNAPSHOT_DIR = r"E:\DSH\memory\snapshots"
@@ -30,6 +36,7 @@ HISTORY_DIR = r"E:\DSH\memory\archive\meow\history"
 
 ok = []
 bad = []
+skipped = []
 
 
 def check(name, cond, detail=""):
@@ -89,11 +96,14 @@ for rel in [
     check("文件 %s 存在" % rel, os.path.exists(p))
 
 # 3) 归档与快照目录
-for d in ARCHIVES:
-    check("归档 %s 存在" % d, os.path.isdir(d))
-check("快照目录存在", os.path.isdir(SNAPSHOT_DIR))
-check("记忆历史版本目录存在", os.path.isdir(HISTORY_DIR))
-check("备份日志存在", os.path.exists(r"E:\DSH\memory\backup.log"))
+if IS_WINDOWS:
+    for d in ARCHIVES:
+        check("归档 %s 存在" % d, os.path.isdir(d))
+    check("快照目录存在", os.path.isdir(SNAPSHOT_DIR))
+    check("记忆历史版本目录存在", os.path.isdir(HISTORY_DIR))
+    check("备份日志存在", os.path.exists(r"E:\DSH\memory\backup.log"))
+else:
+    skipped.append("归档/快照/历史/日志（非 Windows，本机设施不存在）")
 
 # 4) AGENTS.md 提到的关键路径是否都在文档里（存在性反查：文件在、文档也提到）
 agents = os.path.join(WS, "AGENTS.md")
@@ -108,6 +118,10 @@ else:
 print("=== 通过 %d 项 ===" % len(ok))
 for k in ok:
     print("  [OK] " + k)
+if skipped:
+    print("=== 跳过 %d 项（环境不适用，非故障）===" % len(skipped))
+    for k in skipped:
+        print("  [--] " + k)
 if bad:
     print("=== 问题 %d 项 ===" % len(bad))
     for k in bad:
