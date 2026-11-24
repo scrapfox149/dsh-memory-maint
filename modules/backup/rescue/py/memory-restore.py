@@ -26,7 +26,10 @@ def _ws():
     here = os.path.dirname(os.path.abspath(__file__))
     walk = here
     for _ in range(8):
-        for m in (".dsh-meow", "AGENTS.md"):
+        # 只认「装着库的 .dsh-meow」——.dsh-meow 目录会命中 ~/.dsh-meow（全局状态），
+        # AGENTS.md 会命中 ~/.dsh/AGENTS.md（全局约定），2026-11-24 在 paths.py 里踩过同样的坑。
+        # 救生脚本是 py-core/paths.py 的镜像，改那边要同步改这里。
+        for m in (os.path.join(".dsh-meow", "memory.db"),):
             if os.path.exists(os.path.join(walk, m)):
                 return walk
         parent = os.path.dirname(walk)
