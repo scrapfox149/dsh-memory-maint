@@ -1,5 +1,6 @@
 # ROADMAP · 待办与下一步
 
+> **这个文件是施工图，权威入口是 GitHub issue**（状态可查、可关闭、有编号）。
 > **这个文件是待办的单一来源。** 记忆库里的 todo 会散落、会过期，这里集中一份方便查。
 > 完成一项就划掉并在 `CHANGELOG.md` 记一句；不要留着"已完成还挂着"。
 
@@ -10,12 +11,12 @@
 **背景**：`config.json` 已经有六段可配置（`agent` / `start` / `selftest` / `backup` / `paths` / `tools`），
 但**用户看不见它们**，而且**部分配置要重启才生效**。
 
-- [ ] **首次安装说明界面**
+- [ ] **[#15](https://github.com/scrapfox149/dsh-memory-maint/issues/15)** **首次安装说明界面**
   第一次装插件时弹一次，**给"安装了插件的 AI"看**（不只是用户）——
   让 AI 知道"有这些可配置项"，从而**主动告诉用户**。
   *用户原话：「写一个第一次安装插件会弹出的说明界面，来让安装了插件的AI看见，让它告诉用户有这些可配置」*
 
-- [ ] **模块启用要即时生效**
+- [ ] **[#16](https://github.com/scrapfox149/dsh-memory-maint/issues/16)** **模块启用要即时生效**
   现在 `config.json` 的 `tools` 段（6 个工具开关）改了**必须重启宿主**——
   因为 `lib/index.js` 的 `PLUGIN_CONFIG` 是**模块加载时读一次**。
   要改成每次 `apply` / 每次调用时读，或监听 `config.json` 变化。
@@ -29,16 +30,16 @@
 
 ---
 
-## 二、查询能力增强（#8–#13）
+## 二、查询能力增强（[#8–#13](https://github.com/scrapfox149/dsh-memory-maint/issues?q=is%3Aissue)）
 
 | # | 动作 | 说明 | 依赖 |
 |---|---|---|---|
-| 8 | **`history`** | 记忆的变更史（谁改的、什么时候、改了哪） | 数据源 `editHistory_infoFrom` 里的 `reflect-update-<session>-turnRange(a,b)` |
-| 9 | **`conflict`** | 矛盾候选（同项目、关键词重叠高、内容相反） | 只筛不判，交人复核 |
-| 10 | **`recall`** | 按时间窗口召回（"上周我记了什么"） | — |
-| 11 | **`stale`** | 重要但久未更新（`importance>=3` 且 `updated_at` 很旧） | 和 `decay` 区分：decay 看"是否该退场"，stale 看"是否该更新" |
-| 12 | **`--json`** | 给所有查询动作加结构化输出 | 目前只有 `mem.py list --json` |
-| 13 | **`project` 子类过滤** | `--decisions` / `--quotes` / `--todo` | `project` 层本来就有 `subcategory` 列 |
+| [8](https://github.com/scrapfox149/dsh-memory-maint/issues/8) | **`history`** | 记忆的变更史（谁改的、什么时候、改了哪） | 数据源 `editHistory_infoFrom` 里的 `reflect-update-<session>-turnRange(a,b)` |
+| [9](https://github.com/scrapfox149/dsh-memory-maint/issues/9) | **`conflict`** | 矛盾候选（同项目、关键词重叠高、内容相反） | 只筛不判，交人复核 |
+| [10](https://github.com/scrapfox149/dsh-memory-maint/issues/10) | **`recall`** | 按时间窗口召回（"上周我记了什么"） | — |
+| [11](https://github.com/scrapfox149/dsh-memory-maint/issues/11) | **`stale`** | 重要但久未更新（`importance>=3` 且 `updated_at` 很旧） | 和 `decay` 区分：decay 看"是否该退场"，stale 看"是否该更新" |
+| [12](https://github.com/scrapfox149/dsh-memory-maint/issues/12) | **`--json`** | 给所有查询动作加结构化输出 | 目前只有 `mem.py list --json` |
+| [13](https://github.com/scrapfox149/dsh-memory-maint/issues/13) | **`project` 子类过滤** | `--decisions` / `--quotes` / `--todo` | `project` 层本来就有 `subcategory` 列 |
 
 ---
 
