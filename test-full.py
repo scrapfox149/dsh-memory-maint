@@ -40,6 +40,11 @@ ROOT = HERE if os.path.isdir(os.path.join(HERE, "py-core")) else os.path.join(os
 PY = sys.executable
 MEM = os.path.join(ROOT, "py-core", "mem.py")
 
+# 2026-11-24：**测试必须把日志写进自己的临时目录**。
+# 之前让它写默认的 state/，结果「损坏库」那组把 342 条假异常灌进了生产日志
+# （`mem_alert` 里全是 `memtest-xxx/broken.db`），把真实的异常淹了。
+_TEST_LOG_DIR = None
+
 passed, failed = [], []
 
 
@@ -57,6 +62,9 @@ def run(args, db=None, timeout=180):
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONPATH"] = os.path.join(ROOT, "py-core")
     env["DSH_MEMORY_WORKSPACE"] = os.path.dirname(HERE)
+    # **关键**：日志写测试自己的临时目录，别灌生产 state/
+    if _TEST_LOG_DIR:
+        env["DSH_MEMORY_LOG_DIR"] = _TEST_LOG_DIR
     if db:
         env["DSH_MEMORY_DB"] = db
     try:
@@ -115,8 +123,11 @@ def file_hash(path):
 
 
 def main():
+    global _TEST_LOG_DIR
     tmpd = tempfile.mkdtemp(prefix="memtest-")
-    print("=== dsh-memory-maint 全量测试 ===\n临时目录: %s\n" % tmpd)
+    _TEST_LOG_DIR = os.path.join(tmpd, "_logs")
+    os.makedirs(_TEST_LOG_DIR, exist_ok=True)
+    print("=== dsh-memory-maint 全量测试 ===\n临时目录: %s\n日志目录: %s\n" % (tmpd, _TEST_LOG_DIR))
 
     READONLY_CMDS = [["daily"], ["quality"], ["integrity"], ["help"], ["list"],
                      ["project"], ["start"], ["status"]]
@@ -373,6 +384,8 @@ def main():
         env["PYTHONIOENCODING"] = "utf-8"
         env["PYTHONPATH"] = os.path.join(ROOT, "py-core")
         env["DSH_MEMORY_WORKSPACE"] = ro_dir
+        if _TEST_LOG_DIR:      # 同样别灌生产日志
+            env["DSH_MEMORY_LOG_DIR"] = _TEST_LOG_DIR
         try:
             r = subprocess.run([PY, exp], capture_output=True, text=True,
                                encoding="utf-8", errors="replace", timeout=120, env=env)
