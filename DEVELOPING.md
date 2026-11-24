@@ -42,6 +42,22 @@ dsh-memory-maint/
 2. `module.json` 的 `commands` 加一行：`"新动作": "py/xxx.py"`
 3. 跑冒烟：`python test-mem-plugin.py`
 
+**`skipIf`：命令自己声明「什么环境下不该跑」**（2026-11-24）
+
+有些脚本只在**有本机环境**时才成立（比如 `check-agents` 检查计划任务、`weight2` 读前置快照）。
+CI 上跑它们必然失败，但**那不是脚本坏了**。让模块自己声明，而不是写死在测试里：
+
+```json
+"agents":  { "script": "py/check-agents.py",         "skipIf": "ci" },
+"weight2": { "script": "py/memory-weight-check2.py", "skipIf": "ci" }
+```
+
+- **`"ci"`** → 环境变量 `CI` 存在时（GitHub Actions 默认设）跳过
+- 冒烟测试读这个字段并**打印跳过原因**（不静默）
+- **只影响自动化**（冒烟/CI）；`mem.py` 手动调用**不跳**——你说要跑就跑
+- 以后加新脚本要跳过时**只改 `module.json`**，不用动测试代码
+- 带 `skipIf` 的命令用**对象写法**（`{"script": ..., "skipIf": ...}`），和 `mem_alert clear` 那种带 args 的格式一致
+
 ### 加一个模块
 1. 建 `modules/<层>/<新模块>/py/`
 2. 写 `module.json`：
