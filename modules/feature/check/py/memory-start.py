@@ -41,6 +41,25 @@ for _ in range(6):
     ROOT = os.path.dirname(ROOT)
 
 
+def git_changes():
+    """看工作区里有没有未提交改动，按类型分开数。
+
+    2026-11-24：用户提「普通小项目小事没必要动这套规则，问题是怎么让它被需要时出现」。
+    不能靠"我自己判断今天算不算大事"（那又是自觉），要看**可观测的信号**：
+    工作区里有没有真在被改的脚本 / 文档。
+    """
+    try:
+        r = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
+                           capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", timeout=10)
+        lines = [l for l in (r.stdout or "").splitlines() if l.strip()]
+    except Exception:
+        return None, None
+    py = [l for l in lines if l.rstrip().endswith(".py")]
+    md = [l for l in lines if l.rstrip().endswith((".md", ".json", ".yml"))]
+    return py, md
+
+
 def git_head():
     try:
         r = subprocess.run(["git", "log", "--oneline", "-1"], cwd=ROOT,
@@ -52,7 +71,41 @@ def git_head():
 
 
 def main():
+    py_changes, md_changes = git_changes()
+
+    # 判断场景：只在"真在动工具"时才把完整规则摆出来，否则一句话就够。
+    # 不靠感觉，靠工作区里有没有未提交的脚本改动。
+    if py_changes is None:
+        heavy = True          # 读不到 git 就保守当"重"（宁可多提醒）
+        reason = "读不到 git 状态，保守处理"
+    elif py_changes:
+        heavy = True
+        reason = "检测到 %d 处脚本改动 —— 造工具场景" % len(py_changes)
+    elif md_changes:
+        heavy = False
+        reason = "只有 %d 处文档/配置改动 —— 按硬条件看要不要五思" % len(md_changes)
+    else:
+        heavy = False
+        reason = "没有未提交的脚本改动"
+
     print("=== 开工前 ===")
+    print()
+
+    if not heavy:
+        print("✅ %s（今天大概是查 / 看 / 说）" % reason)
+        print("   四问可省；真要改东西了，跑一次 `mem.py start` 会展开完整版")
+        print()
+        try:
+            cnt = count_status_sql()
+            print("当前：%d 条 active" % sum(v["active"] for v in cnt.values()))
+        except Exception:
+            pass
+        head = git_head()
+        if head:
+            print("最近提交：%s" % head)
+        return 0
+
+    print("🔧 %s" % reason)
     print()
     print("四问（每次必过，答不上来先别动手）：")
     print("  ① 说明书在哪？    grep -l \"<关键词>\" DEVELOPING.md README.md")
@@ -65,14 +118,20 @@ def main():
     print("  ⚠ ④验证要写**实测数字**，不是「应该对得上」；新脚本自带 --selftest")
     print()
 
+    if py_changes:
+        print("正在改的脚本：")
+        for l in py_changes[:8]:
+            print("  %s" % l.strip())
+        if len(py_changes) > 8:
+            print("  …还有 %d 处" % (len(py_changes) - 8))
+        print()
+
     try:
         cnt = count_status_sql()
-        total = sum(v["active"] for v in cnt.values())
-        print("当前：%d 条 active" % total)
+        print("当前：%d 条 active" % sum(v["active"] for v in cnt.values()))
     except Exception as e:
         print("当前：(读库失败：%s)" % str(e)[:60])
 
-    # 待办条数（project 层的 todo）
     try:
         todos = [r for r in load(["project"])
                  if (r.get("subcategory") or "") == "todo"
