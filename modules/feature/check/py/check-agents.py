@@ -13,6 +13,7 @@ for _up in range(1, 5):
     if os.path.isdir(_pc):
         sys.path.insert(0, _pc)
         break
+from paths import workspace_root  # noqa: E402
 import xml.etree.ElementTree as ET
 
 if sys.stdout is not None:
@@ -21,7 +22,7 @@ if sys.stdout is not None:
     except Exception:
         pass
 
-WS = r"C:\Users\24172\Documents\deepseek-harness\default-workspace"
+WS = workspace_root()
 TASKS_DIR = r"C:\Windows\System32\Tasks"
 ARCHIVES = [r"E:\DSH\memory\archive", r"D:\FISH-BACKUP_鱼的记忆_勿删"]
 SNAPSHOT_DIR = r"E:\DSH\memory\snapshots"

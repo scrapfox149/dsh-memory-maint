@@ -1,4 +1,4 @@
-﻿# 开发与维护规则（DEVELOPING.md）
+# 开发与维护规则（DEVELOPING.md）
 
 > 这是 `dsh-memory-maint` 的开发/更新规范。**每次改这个插件前后，照这里逐条对一遍。**
 > 最后更新：2026-11-18
@@ -281,7 +281,7 @@ python tools/sync-plugin.py --check    # 只对比，不写
 ### 回滚
 
 ```powershell
-copy tmp\profile-backup-20261118\package.json.bak C:\Users\24172\.dsh\profiles\desktop\package.json
+copy tmp\profile-backup-20261118\package.json.bak "$env:USERPROFILE\.dsh\profiles\desktop\package.json"
 ```
 再删 `node_modules/dsh-memory-maint` 即可。
 

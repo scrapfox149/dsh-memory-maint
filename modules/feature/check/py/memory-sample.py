@@ -11,6 +11,7 @@ for _up in range(1, 5):
         sys.path.insert(0, _pc)
         break
 
+from paths import workspace_root  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from collections import defaultdict
 
@@ -21,8 +22,8 @@ if sys.stdout is not None:
         pass
 
 from mem_db import DB, fetch  # 契约层统一（支持 DSH_MEMORY_DB 覆盖）
-OUT = r"C:\Users\24172\Documents\deepseek-harness\default-workspace\tmp\memory-all-status.json"
-SAMPLE_OUT = r"C:\Users\24172\Documents\deepseek-harness\default-workspace\tmp\memory-sample.json"
+OUT = os.path.join(workspace_root(), "tmp/memory-all-status.json")
+SAMPLE_OUT = os.path.join(workspace_root(), "tmp/memory-sample.json")
 TIERS = ["soul", "user", "rules", "project", "topic", "fact", "lesson"]
 
 items = []

@@ -17,12 +17,31 @@ if sys.stdout is not None:
     except Exception:
         pass
 
-# 【自包含】源路径可覆盖，方便在别的机器上恢复
+# 【自包含】不 import 插件——救生圈必须能在插件坏掉时独立跑。
+def _ws():
+    """内联工作区解析（py-core/paths.py 的镜像，改那边要同步改这里）。"""
+    env = os.environ.get("DSH_MEMORY_WORKSPACE")
+    if env and os.path.isdir(env):
+        return env
+    here = os.path.dirname(os.path.abspath(__file__))
+    walk = here
+    for _ in range(8):
+        for m in (".dsh-meow", "AGENTS.md"):
+            if os.path.exists(os.path.join(walk, m)):
+                return walk
+        parent = os.path.dirname(walk)
+        if parent == walk:
+            break
+        walk = parent
+    return here
+
+
+# 源路径可覆盖，方便在别的机器上恢复
 SRC = (os.environ.get("DSH_MEMORY_EXPORT_DIR")
-       or r"C:\Users\24172\Documents\deepseek-harness\default-workspace\memory-export")
+       or os.path.join(_ws(), "memory-export"))
 SRC = os.path.join(SRC, "memory-all.json")
-LIVE = r"C:\Users\24172\Documents\deepseek-harness\default-workspace\.dsh-meow\memory.db"
-DEFAULT_TEST = r"C:\Users\24172\Documents\deepseek-harness\default-workspace\tmp\restore-test.db"
+LIVE = os.path.join(_ws(), ".dsh-meow", "memory.db")
+DEFAULT_TEST = os.path.join(_ws(), "tmp", "restore-test.db")
 
 TIERS = ["soul", "user", "rules", "project", "topic", "fact", "lesson"]
 

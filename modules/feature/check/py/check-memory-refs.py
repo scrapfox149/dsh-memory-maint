@@ -21,9 +21,10 @@ for _up in range(1, 5):
     if os.path.isdir(_pc):
         sys.path.insert(0, _pc)
         break
+from paths import workspace_root  # noqa: E402
 from mem_db import load  # noqa: E402
 
-WS = r"C:/Users/24172/Documents/deepseek-harness/default-workspace"
+WS = workspace_root()
 
 # 匹配 tools/xxx.py、docs/xxx.md、art/xxx、scripts/xxx
 PATH_RE = re.compile(r"(tools|docs|art|scripts)[/\\]([A-Za-z0-9_\-\u4e00-\u9fa5.]+)")

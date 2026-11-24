@@ -11,6 +11,7 @@ for _up in range(1, 5):
     if os.path.isdir(_pc):
         sys.path.insert(0, _pc)
         break
+from paths import workspace_root  # noqa: E402
 from collections import Counter
 
 if sys.stdout is not None:
@@ -19,8 +20,8 @@ if sys.stdout is not None:
     except Exception:
         pass
 
-SNAP = r"C:\Users\24172\Documents\deepseek-harness\default-workspace\tmp\memory-snapshot.json"
-OUT = r"C:\Users\24172\Documents\deepseek-harness\default-workspace\docs\memory-map.md"
+SNAP = os.path.join(workspace_root(), "tmp/memory-snapshot.json")
+OUT = os.path.join(workspace_root(), "docs/memory-map.md")
 
 
 def tokenize(s):

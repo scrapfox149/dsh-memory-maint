@@ -12,13 +12,14 @@ for _up in range(1, 5):
         sys.path.insert(0, _pc)
         break
 
+from paths import workspace_root  # noqa: E402
 if sys.stdout is not None:
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
 
-SNAP = r"C:\Users\24172\Documents\deepseek-harness\default-workspace\tmp\memory-snapshot.json"
+SNAP = os.path.join(workspace_root(), "tmp/memory-snapshot.json")
 if not os.path.exists(SNAP):
     print("快照不存在：%s" % SNAP)
     print("先跑 memory-map-export.py（mem.py maint mapexport）生成快照")

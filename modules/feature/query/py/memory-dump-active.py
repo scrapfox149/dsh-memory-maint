@@ -12,6 +12,7 @@ for _up in range(1, 5):
         sys.path.insert(0, _pc)
         break
 
+from paths import workspace_root  # noqa: E402
 if sys.stdout is not None:
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -19,7 +20,7 @@ if sys.stdout is not None:
         pass
 
 from mem_db import DB, fetch  # 契约层统一（支持 DSH_MEMORY_DB 覆盖）
-OUT = r"C:\Users\24172\Documents\deepseek-harness\default-workspace\tmp\active-full.txt"
+OUT = os.path.join(workspace_root(), "tmp/active-full.txt")
 TIERS = ["soul", "user", "rules", "project", "topic", "fact", "lesson"]
 
 lines = []

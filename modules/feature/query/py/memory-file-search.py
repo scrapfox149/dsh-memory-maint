@@ -11,6 +11,7 @@ for _up in range(1, 5):
         sys.path.insert(0, _pc)
         break
 
+from paths import workspace_root  # noqa: E402
 from text import bigrams as _u_bigrams   # 2026-11-19 统一分词（py-core/text.py）
 
 if sys.stdout is not None:
@@ -19,7 +20,7 @@ if sys.stdout is not None:
     except Exception:
         pass
 
-WS = r"C:\Users\24172\Documents\deepseek-harness\default-workspace"
+WS = workspace_root()
 EXPORT = os.path.join(WS, "memory-export")
 DOCS = os.path.join(WS, "docs")
 
