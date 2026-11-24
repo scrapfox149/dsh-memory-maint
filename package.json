@@ -1,10 +1,17 @@
-﻿{
+{
   "name": "dsh-memory-maint",
   "version": "0.2.0",
   "description": "记忆库维护插件：去重、衰减、变更、体检、查询。逻辑在 Python（自包含），Node 层只做工具注册与转发。",
   "type": "module",
   "license": "MIT",
-  "keywords": ["dsh-plugin", "deepseek-harness", "dsh", "memory", "maintenance", "cordis-plugin"],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "dsh",
+    "memory",
+    "maintenance",
+    "cordis-plugin"
+  ],
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
@@ -16,11 +23,22 @@
     "modules/",
     "py-core/",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "config.json",
+    "start-checklist.md"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "meow-memory": ">=0.32.0"
+  },
+  "peerDependenciesMeta": {
+    "meow-memory": {
+      "optional": false
     }
   }
 }
