@@ -97,10 +97,12 @@ INTENTS = [
 ]
 
 
-# 「低频」——不是没用，是平时不用。分开列，免得常用动作被淹没。
-# 2026-11-24：用户说"动作太多"，但查下来 weight2/signal 逻辑不同、health/sample 各有用，
-# **合并的风险大于收益**。真正的问题是"不知道哪个该用"，所以分组而不是删。
-LOW_FREQ = {"health", "sample", "weight2", "archive", "source", "agentsmem", "mapexport"}
+# 「低频」——不是没用，是平时不用。
+# 2026-11-24 晚：用户提「低频功能变成同功能的高级功能」——`health` / `weight2` / `sample`
+# 已并进 `mem_check daily --advanced`，`agentsmem` / `archive` 并进 `integrity`。
+# 这个集合只留给**真的还需要单独跑**的（目前是 source 和 mapexport 的替代者 map）。
+# 动作保留但不在常用清单里出现，靠 `--advanced` 或显式调用。
+LOW_FREQ = {"health", "sample", "weight2", "archive", "source", "agentsmem"}
 
 
 def show_group(g, compact=False):

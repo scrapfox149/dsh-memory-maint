@@ -61,6 +61,9 @@ def grep_int(text, pattern, default=0):
 def main():
     verbose = "--verbose" in sys.argv or "-v" in sys.argv
     quiet = "--quiet" in sys.argv or "-q" in sys.argv
+    # 2026-11-24：`--advanced` 把原来几个低频动作（health / weight2 / sample）的排障信息
+    # 并进日报——**同功能的高级模式**，平时不吵，要排障时加一个开关就有。
+    advanced = "--advanced" in sys.argv or "-a" in sys.argv
 
     todo = []      # (优先级 1-9 小在前, 标题, 动作提示, 明细)
     ignore = []    # (标题, 为什么不用管)
@@ -169,6 +172,29 @@ def main():
         print("不用管的：%s" % " / ".join(t for t, _ in ignore))
     if okay:
         print("正常：%s" % " · ".join(okay))
+
+    # ---- 高级模式：把低频动作的排障信息并进来 ----
+    # health / weight2 / sample 原来各是一个独立动作，一年用不上几次；
+    # 但"库有没有毛病"这类问题又确实需要它们。并进 --advanced，平时不占位置。
+    if advanced:
+        print()
+        print("--- 高级：排障信息 ---")
+        for label, rel in (
+            ("库状态", "modules/feature/check/py/memory-health.py"),
+            ("权重清单", "modules/feature/check/py/memory-weight-check2.py"),
+            ("抽样覆盖", "modules/feature/check/py/memory-sample.py"),
+        ):
+            ok_a, out_a = run(rel)
+            print()
+            print("【%s】" % label)
+            if not ok_a:
+                print("  （跑失败）")
+                continue
+            # 只显示前 12 行，避免把日报撑爆
+            for line in (out_a or "").split("\n")[:12]:
+                if line.strip():
+                    print("  " + line.strip()[:100])
+
     if verbose:
         print()
         for t, why in ignore:
