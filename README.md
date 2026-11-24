@@ -21,7 +21,13 @@
 
 ## 一眼看效果
 
-![mem_check 日常体检](docs/mem-check.png)
+**发现问题时**（🔗 两个文件引用失效）：
+
+![mem_check 发现问题](docs/mem-check-found.png)
+
+**一切正常时**：
+
+![mem_check 全绿](docs/mem-check.png)
 
 `mem_check`（不传参数就是日常体检）：
 
