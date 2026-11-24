@@ -200,6 +200,10 @@ def main():
         for t, why in ignore:
             print("  · %s —— %s" % (t, why))
         print("  （忘了动作名就跑 `mem_check help`）")
+    elif todo and not advanced:
+        # 有问题时提示"要看全部信息加 --advanced"，没问题时不提——**提示本身也是噪音**。
+        # 这比"要用户记得有这个参数"贴「自然想起来」：它在该出现的时候出现。
+        print("（要看完整排障信息：`mem.py daily --advanced`）")
     return 0 if not todo else 1
 
 
