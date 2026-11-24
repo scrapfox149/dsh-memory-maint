@@ -16,7 +16,7 @@ jobs:
       # 显式告诉它工作区在哪——这也顺便验证了环境变量这条路是通的。
       DSH_MEMORY_WORKSPACE: ${{ github.workspace }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
