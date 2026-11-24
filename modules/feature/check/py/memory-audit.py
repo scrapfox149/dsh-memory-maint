@@ -147,7 +147,11 @@ for s in serious:
     print("  ! " + s)
 print()
 print("=== 建议修（%d）===" % len(minor))
-for s in minor[:40]:
+# 2026-11-24：加 `--all` 看全部。
+# 默认只显示前 40 条（不让正常使用被 74 行淹没），但**测试/排查时需要看全**——
+# 之前没有这个开关，造了已知该报的数据却"看不见"，差点误判成漏报。
+_show_all = "--all" in sys.argv or "-a" in sys.argv
+for s in (minor if _show_all else minor[:40]):
     print("  - " + s)
-if len(minor) > 40:
-    print("  …… 还有 %d 条" % (len(minor) - 40))
+if len(minor) > 40 and not _show_all:
+    print("  …… 还有 %d 条（要全看加 --all）" % (len(minor) - 40))
