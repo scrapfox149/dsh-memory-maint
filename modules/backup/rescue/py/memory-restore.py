@@ -47,6 +47,11 @@ TIERS = ["soul", "user", "rules", "project", "topic", "fact", "lesson"]
 
 
 def restore(target):
+    # 2026-11-24：CI 上暴露的坑——父目录不存在时 sqlite3.connect 直接
+    # "unable to open database file"。本地因为 tmp/ 一直存在，从没发现过。
+    _d = os.path.dirname(os.path.abspath(target))
+    if _d and not os.path.isdir(_d):
+        os.makedirs(_d, exist_ok=True)
     data = json.load(open(SRC, encoding="utf-8"))
     tiers = data.get("tiers", {})
 
