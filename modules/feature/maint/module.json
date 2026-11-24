@@ -8,7 +8,6 @@
     "dream": "py/memory-global-dream.py",
     "index": "py/memory-index.py",
     "timeline": "py/memory-timeline.py",
-    "map": "py/memory-map.py",
-    "mapexport": "py/memory-map-export.py"
+    "map": "py/memory-map.py"
   }
 }
