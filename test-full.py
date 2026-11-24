@@ -234,6 +234,107 @@ def main():
     check("库 mtime 不变", abs(before_m - after_m) < 1.0,
           "%.3f -> %.3f" % (before_m, after_m))
 
+    # ---- 9. 并发（三个命令同时读同一个库）----
+    print("\n--- 9. 并发读 ---")
+    import threading
+    conc = os.path.join(tmpd, "concurrent.db")
+    make_db(conc)
+    for i in range(30):
+        insert(conc, "fact", "conc%04d-aa" % i, "并发测试第 %d 条" % i)
+    results = []
+
+    def worker(cmd):
+        rc, out = run(cmd, db=conc)
+        with_lock = ("database is locked" in out.lower())
+        results.append((cmd, rc, with_lock, out))
+
+    threads = [threading.Thread(target=worker, args=(c,))
+               for c in (["daily"], ["quality"], ["integrity"], ["project"])]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=120)
+    locked = [r for r in results if r[2]]
+    crashed = [r for r in results if "Traceback" in r[3]]
+    check("四个命令并发读不因锁崩", not crashed,
+          "; ".join(r[0][0] for r in crashed))
+    check("并发读没有 database is locked", not locked,
+          "锁冲突: %s" % ", ".join(r[0][0] for r in locked))
+
+    # ---- 10. WAL 模式 ----
+    print("\n--- 10. WAL 模式库 ---")
+    wal = os.path.join(tmpd, "wal.db")
+    make_db(wal)
+    con = sqlite3.connect(wal)
+    con.execute("PRAGMA journal_mode=WAL")
+    con.commit()
+    mode = con.execute("PRAGMA journal_mode").fetchone()[0]
+    con.close()
+    insert(wal, "fact", "wal00001-aa", "WAL 模式下的记忆")
+    check("库确实是 WAL 模式", str(mode).lower() == "wal", "实际 %s" % mode)
+    rc, out = run(["daily"], db=wal)
+    check("WAL 库上 daily 不崩", "Traceback" not in out, out.strip().split("\n")[-1][:60])
+    rc, out = run(["project"], db=wal)
+    check("WAL 库上 project 不崩", "Traceback" not in out, out.strip().split("\n")[-1][:60])
+    # 顺手验证：跑只读命令不该产生新的 wal 内容
+    wal_before = os.path.getsize(wal + "-wal") if os.path.exists(wal + "-wal") else 0
+    run(["daily"], db=wal)
+    wal_after = os.path.getsize(wal + "-wal") if os.path.exists(wal + "-wal") else 0
+    check("只读命令不往 WAL 里写", wal_after <= wal_before + 4096,
+          "%d -> %d 字节" % (wal_before, wal_after))
+
+    # ---- 11. 超大库（10 万条）----
+    print("\n--- 11. 超大库（10 万条）---")
+    huge = os.path.join(tmpd, "huge.db")
+    make_db(huge)
+    con = sqlite3.connect(huge)
+    now = int(time.time() * 1000)
+    rows = [("huge%06d-aa" % i, "第 %d 条批量数据，内容类似" % i,
+             "批量,测试", 2, "active", now, now, "大库")
+            for i in range(100000)]
+    con.executemany(
+        'INSERT INTO fact (id, content, keywords, importance, status, created_at, updated_at, project) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)', rows)
+    con.commit()
+    con.close()
+    t0 = time.time()
+    rc, out = run(["daily"], db=huge, timeout=300)
+    elapsed = time.time() - t0
+    check("10 万条库上 daily 不崩", "Traceback" not in out, out.strip().split("\n")[-1][:60])
+    check("10 万条 daily 在 60 秒内跑完", elapsed < 60, "实际 %.1f 秒" % elapsed)
+    print("    （daily 耗时 %.1f 秒）" % elapsed)
+
+    # ---- 12. 损坏的库 ----
+    print("\n--- 12. 损坏的库（写垃圾字节）---")
+    broken = os.path.join(tmpd, "broken.db")
+    with open(broken, "wb") as f:
+        f.write(b"this is not a sqlite database at all" * 100)
+    rc, out = run(["daily"], db=broken)
+    check("损坏库不静默返回 0", rc != 0, "rc=%d" % rc)
+    # 检查词要覆盖实际可能的说法——第一次写漏了「损坏」，把好好的提示判成失败
+    has_readable = any(k in out for k in (
+        "DatabaseError", "损坏", "不是 SQLite", "不是数据库",
+        "not a database", "file is not a database", "无法"))
+    check("损坏库给了可读的提示", has_readable, out.strip().split("\n")[-1][:80])
+
+    # ---- 13. 只读文件（模拟"没权限/只读挂载"）----
+    print("\n--- 13. 库文件只读 ---")
+    rofile = os.path.join(tmpd, "readonly-file.db")
+    make_db(rofile)
+    insert(rofile, "fact", "ro000001-aa", "只读文件里的记忆")
+    os.chmod(rofile, 0o444)
+    try:
+        rc, out = run(["daily"], db=rofile)
+        check("只读库文件上 daily 仍可读", "Traceback" not in out,
+              out.strip().split("\n")[-1][:60])
+    finally:
+        os.chmod(rofile, 0o666)
+
+    # ---- 不适用（记一笔，不算失败）----
+    print("\n--- 不适用本机环境 ---")
+    print("  SKIP 符号链接库：Windows 造符号链接需要管理员，跳过")
+    print("  SKIP 磁盘满：无法安全制造，改用「只读文件」覆盖同类场景")
+
     # ---- 汇总 ----
     total = len(passed) + len(failed)
     print("\n" + "=" * 60)
