@@ -1,4 +1,4 @@
-# 开发与维护规则（DEVELOPING.md）
+# 开发与维护规则（docs/DEVELOPING.md）
 
 > 这是 `dsh-memory-maint` 的开发/更新规范。**每次改这个插件前后，照这里逐条对一遍。**
 > 最后更新：2026-11-18
@@ -23,7 +23,7 @@ dsh-memory-maint/
 ├── py-core/mem_db.py         基础层：契约层（唯一读库入口）
 ├── state/                    日志（runtime.log / errors.jsonl，7 天过期）
 ├── 	ests/test-mem-plugin.py        冒烟测试
-├── DEVELOPING.md             本文件
+├── docs/DEVELOPING.md             本文件
 └── README.md                 使用说明
 ```
 
@@ -282,7 +282,7 @@ python tools/sync-plugin.py            # 同步
 python tools/sync-plugin.py --check    # 只对比，不写
 ```
 
-**同步范围**：`lib/ modules/ py-core/ cordis.patch.yml package.json README.md DEVELOPING.md 	ests/test-mem-plugin.py`
+**同步范围**：`lib/ modules/ py-core/ cordis.patch.yml package.json README.md docs/DEVELOPING.md 	ests/test-mem-plugin.py`
 **不同步**：`state/`（运行日志，两边各管各的）。
 
 **同步前会自动备份目标原内容** → `tmp/plugin-sync-backup/`。
