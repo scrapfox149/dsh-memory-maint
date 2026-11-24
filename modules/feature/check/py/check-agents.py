@@ -30,9 +30,31 @@ WS = workspace_root()
 #   Windows → 全查；其它 → 只查 AGENTS.md 的引用一致性，归档类标「跳过」。
 IS_WINDOWS = platform.system() == "Windows"
 TASKS_DIR = r"C:\Windows\System32\Tasks"
-ARCHIVES = [r"E:\DSH\memory\archive", r"D:\FISH-BACKUP_鱼的记忆_勿删"]
-SNAPSHOT_DIR = r"E:\DSH\memory\snapshots"
-HISTORY_DIR = r"E:\DSH\memory\archive\meow\history"
+
+
+def _load_paths_config():
+    """从插件根 config.json 的 paths 段读本机路径。
+
+    2026-11-24：原来这四项写死在代码里（E:\\DSH\\... / D:\\FISH-BACKUP...），
+    别人机器上根本没有这些目录——不是"检查失败"，是"没有这个设施"。
+    现在：config.json 里配了才查，没配就跳过（不算问题）。
+    """
+    import json
+    try:
+        p = os.path.join(WS, "tools", "dsh-memory-maint", "config.json")
+        if not os.path.exists(p):
+            return {}
+        with open(p, encoding="utf-8") as f:
+            return (json.load(f).get("paths") or {})
+    except Exception:
+        return {}
+
+
+_CFG_PATHS = _load_paths_config()
+ARCHIVES = [p for p in (_CFG_PATHS.get("archives") or []) if p]
+SNAPSHOT_DIR = _CFG_PATHS.get("snapshotDir") or ""
+HISTORY_DIR = _CFG_PATHS.get("historyDir") or ""
+BACKUP_LOG = _CFG_PATHS.get("backupLog") or ""
 
 ok = []
 bad = []
@@ -95,13 +117,25 @@ for rel in [
     p = os.path.join(WS, rel)
     check("文件 %s 存在" % rel, os.path.exists(p))
 
-# 3) 归档与快照目录
+# 3) 归档与快照目录（**只查 config.json 里配了的**——别人机器上可能没有这些设施）
 if IS_WINDOWS:
-    for d in ARCHIVES:
-        check("归档 %s 存在" % d, os.path.isdir(d))
-    check("快照目录存在", os.path.isdir(SNAPSHOT_DIR))
-    check("记忆历史版本目录存在", os.path.isdir(HISTORY_DIR))
-    check("备份日志存在", os.path.exists(r"E:\DSH\memory\backup.log"))
+    if ARCHIVES:
+        for d in ARCHIVES:
+            check("归档 %s 存在" % d, os.path.isdir(d))
+    else:
+        skipped.append("归档目录（config.json 的 paths.archives 没配）")
+    if SNAPSHOT_DIR:
+        check("快照目录存在", os.path.isdir(SNAPSHOT_DIR))
+    else:
+        skipped.append("快照目录（paths.snapshotDir 没配）")
+    if HISTORY_DIR:
+        check("记忆历史版本目录存在", os.path.isdir(HISTORY_DIR))
+    else:
+        skipped.append("记忆历史版本目录（paths.historyDir 没配）")
+    if BACKUP_LOG:
+        check("备份日志存在", os.path.exists(BACKUP_LOG))
+    else:
+        skipped.append("备份日志（paths.backupLog 没配）")
 else:
     skipped.append("归档/快照/历史/日志（非 Windows，本机设施不存在）")
 
