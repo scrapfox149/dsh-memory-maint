@@ -97,6 +97,25 @@ INTENTS = [
 ]
 
 
+# 「低频」——不是没用，是平时不用。分开列，免得常用动作被淹没。
+# 2026-11-24：用户说"动作太多"，但查下来 weight2/signal 逻辑不同、health/sample 各有用，
+# **合并的风险大于收益**。真正的问题是"不知道哪个该用"，所以分组而不是删。
+LOW_FREQ = {"health", "sample", "weight2", "archive", "source", "agentsmem", "mapexport"}
+
+
+def show_group(g, compact=False):
+    print("%s（%s/%s，%d 个）" % (g["tool"], g["layer"], g["module"], len(g["rows"])))
+    rows = g["rows"]
+    if compact:
+        # 紧凑模式：一行列完，只给名字
+        print("  " + " / ".join(a for a, _d in rows))
+        print()
+        return
+    for act, desc in rows:
+        print("  %-12s %s" % (act, ("—— " + desc) if desc else ""))
+    print()
+
+
 def main():
     filt = sys.argv[1].lower() if len(sys.argv) > 1 else ""
     groups = collect()
@@ -122,11 +141,26 @@ def main():
 
     print("=== 插件动作清单（%d 个工具 / %d 个动作）===" % (len(groups), total))
     print()
+
+    # 分成「常用」「低频」两组：动作多不是问题，不知道哪个该用才是。
+    common, low = [], []
     for g in groups:
-        print("%s（%s/%s，%d 个）" % (g["tool"], g["layer"], g["module"], len(g["rows"])))
-        for act, desc in g["rows"]:
-            print("  %-12s %s" % (act, ("—— " + desc) if desc else ""))
+        rows_c = [(a, d) for a, d in g["rows"] if a not in LOW_FREQ]
+        rows_l = [(a, d) for a, d in g["rows"] if a in LOW_FREQ]
+        if rows_c:
+            common.append({"tool": g["tool"], "layer": g["layer"],
+                           "module": g["module"], "rows": rows_c})
+        if rows_l:
+            low.append({"tool": g["tool"], "layer": g["layer"],
+                        "module": g["module"], "rows": rows_l})
+
+    for g in common:
+        show_group(g)
+    if low:
+        print("--- 低频（不是没用，是平时不用）---")
         print()
+        for g in low:
+            show_group(g, compact=True)
     print("提示：`mem_check daily` 是日常体检（默认动作，不传 action 也是它）。")
     return 0
 
