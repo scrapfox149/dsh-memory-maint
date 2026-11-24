@@ -196,6 +196,44 @@ def selftest():
     return 0 if not failed else 1
 
 
+# ── 「可配置」强提醒只做一次（用户 2026-11-24：这个文件应该是只主动强提醒一次，后面都作为说明文件存在）──
+def _state_dir():
+    """和 lib 那边一致的 state 目录：DSH_MEMORY_LOG_DIR 优先，否则工作区/tools/插件/state。"""
+    env = os.environ.get("DSH_MEMORY_LOG_DIR")
+    if env:
+        return env
+    try:
+        from paths import workspace_root
+        return os.path.join(workspace_root(), "tools", "dsh-memory-maint", "state")
+    except Exception:
+        return None
+
+
+def _tip_marker():
+    d = _state_dir()
+    return os.path.join(d, "config-tipped") if d else None
+
+
+def is_first_time_config_tip():
+    """还没提过 → True。拿不到 state 目录就返回 False（宁可不提，也别每次都刷屏）。"""
+    p = _tip_marker()
+    if not p:
+        return False
+    return not os.path.exists(p)
+
+
+def mark_config_tipped():
+    p = _tip_marker()
+    if not p:
+        return
+    try:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            f.write("1\n")
+    except Exception:
+        pass
+
+
 def main():
     if "--selftest" in sys.argv:
         return selftest()
@@ -266,6 +304,25 @@ def main():
     head = git_head()
     if head:
         print("最近提交：%s" % head)
+
+    # 2026-11-24：**看见了也要主动提**（用户原话：「看见了也要主动提，告诉用户这些可配置，功能可以关闭」）。
+    # 但用户又说「**这个文件应该是只主动强提醒一次，后面都作为说明文件存在**」——
+    # 所以：第一次（state/config-told 不存在）强提醒一次；之后完全不提（help / CONFIG.md 还在）。
+    if is_first_time_config_tip():
+        print()
+        print("=== 可配置（这是第一次提醒，之后不再主动提）===")
+        print()
+        print("这个插件有六段配置，**不用改代码**：")
+        print("  agent.name       AI 的名字          默认 DeepSeek")
+        print("  tools.<工具名>   工具开关           false = 关掉（⚠ 要重启宿主）")
+        print("  backup.targets   备份几份 / 放哪      配 1 个就只备一份")
+        print("  backup.exportDir 导出去向           默认 workspace/memory-export")
+        print("  start.checklist  开工清单           可换成用户自己的规则")
+        print("  paths.*          本机设施路径         没配就跳过")
+        print()
+        print("  用户问「能不能改 / 能不能关」→ 照上面答；细节看插件根 CONFIG.md。")
+        print("  随时能重看：mem_check help（有「可以改的」一节）")
+        mark_config_tipped()
     return 0
 
 
