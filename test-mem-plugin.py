@@ -56,11 +56,24 @@ NEEDS_ARGS = {
     "memory-restore.py": ["--verify"],   # 演练模式，不碰活库
 }
 
+# 只在「有本机环境」时才成立、CI 上必然缺前置的脚本。
+# 2026-11-24：CI 跑到 28/30，挂的这两个都不是坏，是环境不对——
+#   check-agents.py            检查计划任务 / E:\DSH\memory\archive 等本机设施
+#   memory-weight-check2.py    读 tmp/memory-snapshot.json（要先跑 memory-map-export）
+# 判据：`CI` 环境变量存在（GitHub Actions 默认设 CI=true）→ 跳过并说明。
+CI_ONLY_SKIP = {
+    "check-agents.py": "检查本机计划任务与归档目录，CI 上没有",
+    "memory-weight-check2.py": "需要 tmp/memory-snapshot.json 前置产物，CI 上没有",
+}
+
 
 def run_one(layer, mod, script, db=None):
     path = os.path.join(HERE, "modules", layer, mod, "py", script)
     if not os.path.exists(path):
         return False, "脚本不存在"
+    # CI 上跳过「必须有本机环境才有意义」的脚本（跳过也要说清原因，别静默）
+    if os.environ.get("CI") and script in CI_ONLY_SKIP:
+        return True, "CI 跳过：" + CI_ONLY_SKIP[script]
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONPATH"] = os.path.join(HERE, "py-core") + (
