@@ -111,7 +111,11 @@ for rel in [
     "tools/proxy-guard.py",
     "tools/proxy-idle-reaper.py",
     "tools/update-fx.py",
-    "proxy-control.py",
+    "tools/proxy-control.py",      # 2026-11-24 从工作区根移进 tools/
+    "tools/proxy-health.py",
+    "tools/proxy-nodes.py",
+    "tools/probe-core.py",
+    "tools/browser-channel.ps1",
     "AGENTS.md",
 ]:
     p = os.path.join(WS, rel)
