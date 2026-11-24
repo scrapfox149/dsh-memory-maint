@@ -34,6 +34,13 @@ TIERS = ("soul", "user", "rules", "project", "topic", "fact", "lesson")
 
 ID_RE = re.compile(r"→\s*记忆库\s*(\w+)?\s*`?([0-9a-z]{7,})`?")
 
+# 2026-11-24：CI 里没有 AGENTS.md（只有仓库内容），直接 open 会 FileNotFoundError。
+# 这不是故障——"没有 AGENTS 就没什么可对照的"，说清楚并正常退出。
+if not os.path.isfile(AGENTS):
+    print("跳过：找不到 AGENTS.md（%s）" % AGENTS)
+    print("这个检查是「AGENTS 里的记忆库引用 ↔ 实际库」对照，没有 AGENTS 就无从比。")
+    raise SystemExit(0)
+
 text = open(AGENTS, encoding="utf-8").read()
 refs = ID_RE.findall(text)  # [(tier, id), ...]
 

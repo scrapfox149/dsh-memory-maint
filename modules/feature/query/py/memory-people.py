@@ -83,8 +83,9 @@ if untagged:
         lines.append("- `%s` [w%d] %s" % (t, imp, content[:88].replace("\n", " ")))
     lines.append("")
 
-with open(OUT, "w", encoding="utf-8") as f:
-    f.write("\n".join(lines))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    with open(OUT, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
 print("写入:", OUT)
 print("用户:%d 离瞳转达:%d 大肥鱼:%d 离瞳直接:%d 未标:%d" % (
     len(groups.get("用户（菜包狐）", [])), len(groups.get("离瞳（转达）", [])),

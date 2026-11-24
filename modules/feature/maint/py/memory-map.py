@@ -70,6 +70,7 @@ for tp in topics:
                                           (other["content"] or "")[:58].replace("\n", " ")))
     lines.append("")
 
-with open(OUT, "w", encoding="utf-8") as f:
-    f.write("\n".join(lines))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    with open(OUT, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
 print("topic:", len(topics), "| 写入:", OUT)

@@ -92,7 +92,7 @@ def main():
                 lines.append("- `%s`%s %s" % (iid[:12], mark, one_line(content)))
             lines.append("")
 
-    io.open(OUT, "w", encoding="utf-8").write("\n".join(lines))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True); io.open(OUT, "w", encoding="utf-8").write("\n".join(lines))
     print("已生成：", OUT)
     print("条目数：", len(rows))
     return 0

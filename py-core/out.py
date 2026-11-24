@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """输出格式的统一约定（与 mem_db.py 并列：一个管数据，一个管呈现）。
 
 为什么要有它（2026-11-19）：30 个动作的输出混着 `===` / `【】` / `[` 三种风格，
@@ -79,3 +79,16 @@ def kv(key, value):
 
 def fmt_count(n, unit="条"):
     return "%d %s" % (n, unit)
+
+def ensure_parent(path):
+    """确保 path 的父目录存在（2026-11-24，CI 暴露的坑）。
+
+    这些脚本会往 docs/ tmp/ 里写产物，本地因为目录一直在所以从没出过事；
+    CI 上 checkout 只有仓库内容，父目录不存在 → FileNotFoundError。
+    写之前调一次，比在每个脚本里各写一遍 makedirs 省事。
+    """
+    import os
+    d = os.path.dirname(os.path.abspath(path))
+    if d and not os.path.isdir(d):
+        os.makedirs(d, exist_ok=True)
+    return path
