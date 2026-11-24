@@ -1,6 +1,6 @@
 {
   "name": "dsh-memory-maint",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "记忆库维护插件：去重、衰减、变更、体检、查询。逻辑在 Python（自包含），Node 层只做工具注册与转发。",
   "type": "module",
   "license": "MIT",

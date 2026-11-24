@@ -7,7 +7,7 @@
 
 ---
 
-## [未发布] - 2026-11-24
+## [0.3.0] - 2026-11-24
 
 > 今天共 58 个提交。这一版的核心变化是**从「补功能」转向「足够好用、需要时想得起来」**。
 
@@ -44,10 +44,21 @@
 
 ### 可配置
 
-- **`start-checklist.md`**：开工清单写在文件里（`##` 是分组标题、`>` 是说明不打印）。
-  四问/五思是**这一套**，别人可以换成自己的规则；没文件就用内置默认
-- **`config.json` 的 `start` 段**：`expandOnPyChanges` / `expandOnDocsOnly` / `timeoutSeconds` / `showTodoCount` / `checklist`
-- **`skipIf` 机制**：`module.json` 的 `commands` 可以声明「什么环境下不该跑」（目前 `ci`）
+**六段全在插件根的 `config.json`，改配置不用改代码**；每一项的说明见 `docs/CONFIG.md`。
+
+- **`agent.name`** —— AI 的名字。默认 `DeepSeek`（通用），本机覆盖成「鱼」。
+  优先级：`DSH_AGENT_NAME` 环境变量 > `config.json` > `DeepSeek`
+- **`start`** —— 开工清单：`expandOnPyChanges` / `expandOnDocsOnly` / `timeoutSeconds` / `showTodoCount` / `checklist`
+- **`start-checklist.md`** —— 四问/五思写在文件里（`##` 是分组、`>` 是不打印的说明），可换成自己的规则
+- **`selftest.legacy`** —— 35 个老脚本的白名单（它们不需要 `--selftest`）
+- **`backup.targets`** —— 备份目标：配 1 个就备一份，配 N 个备 N 份，空则回落默认两个
+- **`backup.exportDir`** —— 导出去向，默认 `workspace/memory-export`
+- **`paths`** —— 本机设施（归档 / 快照 / 历史 / 日志）。**没配就跳过，不算故障**
+- **`tools`** —— 6 个工具逐个开关，不配=全开
+- **`skipIf`** —— `module.json` 的 `commands` 可声明「什么环境下不该跑」（目前 `ci`）
+
+**生效方式**：Python 脚本**立即生效**（每次子进程重读）；
+`lib/index.js` **要重启宿主**——这是已知缺陷，见 issue #16。
 
 ### 工具链
 
@@ -58,11 +69,21 @@
 
 ### 修复
 
-- **`memory-daily` 漏了「结论：」行**：压缩输出时删掉的，有 todo 时冒烟会判失败
-- **冒烟结果行的总数**：改用 `passed + failed`，原来用 `len(CHECKS)`，
-  白名单外脚本执行两次时账对不上
-- **`mem.py` 缺 `import os`**：算相对路径时 `NameError` 被 `except Exception` 吞掉，
-  静默退回绝对路径（CLI 输出看着正常，所以连续两次没发现）
+- **`memory-daily` 漏了「结论：」行** —— 压缩输出时删掉的，有 todo 时冒烟会判失败
+- **冒烟结果行的总数** —— 改用 `passed + failed`；原来用 `len(CHECKS)`，白名单外脚本执行两次时账对不上
+- **`mem.py` 缺 `import os`** —— 算相对路径时 `NameError` 被 `except Exception` 吞掉，静默退回绝对路径
+- **`paths.py` 的 workspace 标志物撞全局目录** —— `.dsh-meow` 命中 `~/.dsh-meow`（meow-memory 的状态目录）、
+  `AGENTS.md` 命中 `~/.dsh/AGENTS.md`（全局约定）。**改成只认「装着库的」 `.dsh-meow/memory.db`**
+- **`lib/index.js` 没传 `DSH_MEMORY_WORKSPACE`** —— Python 侧从 `__file__` 往上找，算出错误的根
+- **`lib` 的 `findWorkspace()` 往上找是死路** —— 插件在 profile、工作区在别处，没有上下级关系。
+  改成 `cwd` → 往上找 → `~/.dsh-meow/window-index.json` 三级兜底
+- **`mem.py` 丢掉 `module.json` 的 `args`** —— `mem.py clear` 跑成了不带 `--clear-errors` 的脚本，
+  **只打印告警、根本没清**
+- **测试污染生产日志** —— 「损坏库」那组把 342 条假异常写进了 `state/errors.jsonl`；
+  改成写自己的临时目录
+- **「有警告」被记 FAIL** —— `daily` / `quality` / `integrity` 有 todo 时故意返回 1，
+  但 `lib` 只看退出码。改成**只要 stdout 里有「结论：」就算跑完了**
+- **`audit` 只看前 40 条** —— 74 条建议里后面的看不见，加 `--all`
 
 ### 文档
 
