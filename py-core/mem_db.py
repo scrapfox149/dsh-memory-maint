@@ -19,6 +19,7 @@
     for it in load(tiers=["lesson"], status="active"):
         it["tier"], it["id"], it["content"], it["importance"]
 """
+from paths import workspace_root  # noqa: E402
 import json
 import os
 import sqlite3
@@ -26,7 +27,7 @@ import sys
 
 # 库路径：先读环境变量（沙箱/测试用），否则用活库
 DB = (os.environ.get("DSH_MEMORY_DB")
-      or r"C:/Users/24172/Documents/deepseek-harness/default-workspace/.dsh-meow/memory.db")
+      or os.path.join(workspace_root(), ".dsh-meow/memory.db"))
 TIERS = ["soul", "user", "rules", "project", "topic", "fact", "lesson"]
 
 # 已知字段及其默认值（缺少时补这个值，避免调用方拿到 None 崩掉）

@@ -26,12 +26,36 @@ if sys.stdout is not None:
         pass
 
 # 【自包含】不依赖插件/契约层——本脚本要能在插件坏掉时独立运行。
-# 库路径：环境变量 DSH_MEMORY_DB > 默认活库路径
+def _ws():
+    """内联的工作区根解析（故意不 import paths —— 救生圈必须自包含）。
+
+    优先级：环境变量 DSH_MEMORY_WORKSPACE → 向上找标志物（.dsh-meow / AGENTS.md）
+            → 最后退回「脚本往上两层」，总比崩了强。
+    （这是 py-core/paths.py 的镜像；改那边时要同步改这里。）
+    """
+    env = os.environ.get("DSH_MEMORY_WORKSPACE")
+    if env and os.path.isdir(env):
+        return env
+    here = os.path.dirname(os.path.abspath(__file__))
+    walk = here
+    for _ in range(8):
+        for m in (".dsh-meow", "AGENTS.md"):
+            if os.path.exists(os.path.join(walk, m)):
+                return walk
+        parent = os.path.dirname(walk)
+        if parent == walk:
+            break
+        walk = parent
+    return here
+
+
+# 库路径：环境变量 DSH_MEMORY_DB > 工作区里的活库
 DB = (os.environ.get("DSH_MEMORY_DB")
-      or r"C:\Users\24172\Documents\deepseek-harness\default-workspace\.dsh-meow\memory.db")
+      or os.path.join(_ws(), ".dsh-meow", "memory.db"))
 # 【内联告警】不 import 插件——但失败时仍要能被 mem_alert 看到。
+# 落点默认在脚本自己旁边（插件可能已经坏掉，不该指望它的 state/ 还在）
 _LOG_DIR = (os.environ.get("DSH_MEMORY_LOG_DIR")
-            or r"C:\Users\24172\Documents\deepseek-harness\default-workspace\tools\dsh-memory-maint\state")
+            or os.path.dirname(os.path.abspath(__file__)))
 
 
 def report(msg, kind="exception"):
@@ -46,7 +70,7 @@ def report(msg, kind="exception"):
 
 
 OUT_DIR = (os.environ.get("DSH_MEMORY_EXPORT_DIR")
-           or r"C:\Users\24172\Documents\deepseek-harness\default-workspace\memory-export")
+           or os.path.join(_ws(), "memory-export"))
 TIERS = ["soul", "user", "rules", "project", "topic", "fact", "lesson"]
 TIER_CN = {
     "soul": "身份", "user": "用户", "rules": "准则", "project": "项目",

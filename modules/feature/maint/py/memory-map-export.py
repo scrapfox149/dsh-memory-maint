@@ -12,6 +12,7 @@ for _up in range(1, 5):
         sys.path.insert(0, _pc)
         break
 
+from paths import workspace_root  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import time
 
@@ -23,7 +24,7 @@ if sys.stdout is not None:
 
 from mem_db import DB, fetch  # 契约层统一（支持 DSH_MEMORY_DB 覆盖）
 TIERS = ["soul", "user", "rules", "project", "topic", "fact", "lesson"]
-OUT = r"C:\Users\24172\Documents\deepseek-harness\default-workspace\tmp\memory-snapshot.json"
+OUT = os.path.join(workspace_root(), "tmp/memory-snapshot.json")
 
 items = []
 FIELDS = ["id", "title", "content", "keywords", "importance", "status",

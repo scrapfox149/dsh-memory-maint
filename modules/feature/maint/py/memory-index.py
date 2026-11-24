@@ -15,6 +15,7 @@ for _up in range(1, 5):
     if os.path.isdir(_pc):
         sys.path.insert(0, _pc)
         break
+from paths import workspace_root  # noqa: E402
 import time
 
 if sys.stdout is not None:
@@ -24,7 +25,7 @@ if sys.stdout is not None:
         pass
 
 from mem_db import DB, fetch  # 契约层统一（支持 DSH_MEMORY_DB 覆盖）
-OUT = r"C:\Users\24172\Documents\deepseek-harness\default-workspace\docs\memory-index.md"
+OUT = os.path.join(workspace_root(), "docs/memory-index.md")
 TIERS = ["soul", "user", "rules", "project", "topic", "fact", "lesson"]
 TIER_CN = {
     "soul": "身份", "user": "用户", "rules": "准则", "project": "项目",
