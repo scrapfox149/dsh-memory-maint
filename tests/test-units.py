@@ -26,12 +26,20 @@ if sys.stdout is not None:
         pass
 
 _here = os.path.dirname(os.path.abspath(__file__))
+# 2026-11-24：测试脚本移到 tests/ 了，所以从这里往上找插件根（含 py-core 的那层）。
+# 放在根目录或 tests/ 都能跑。
+ROOT = _here
+for _ in range(3):
+    if os.path.isdir(os.path.join(ROOT, "py-core")):
+        break
+    ROOT = os.path.dirname(ROOT)
+
 # 本文件在插件根目录，py-core 就在旁边；也兼容被放到 modules/*/py/ 下的情况（向上找）
-if os.path.isdir(os.path.join(_here, "py-core")):
-    sys.path.insert(0, os.path.join(_here, "py-core"))
+if os.path.isdir(os.path.join(ROOT, "py-core")):
+    sys.path.insert(0, os.path.join(ROOT, "py-core"))
 else:
     for _up in range(1, 5):
-        _pc = os.path.join(_here, *([".."] * _up), "py-core")
+        _pc = os.path.join(ROOT, *([".."] * _up), "py-core")
         if os.path.isdir(_pc):
             sys.path.insert(0, _pc)
             break

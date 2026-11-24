@@ -46,7 +46,9 @@ if PY_CORE not in sys.path:
 KNOWN_ISSUES = [
     "26 个脚本全部走契约层（load/fetch/count_status_sql）；只有 backup/rescue 的 export/restore 有意自包含",
     "保命工具 export/restore 已并入 backup 层（自包含），并由备份脚本同步到两处 archive/tools/，插件坏了也能独立执行",
-    "已装进 desktop profile（2026-11-18），6 个工具已注册；改工作区代码后要跑 `python tools/sync-plugin.py` 同步",
+    "已装进 desktop profile，6 个工具已注册；**改完工作区代码要同步到 profile**"
+    "（`~/.dsh/profiles/desktop/node_modules/dsh-memory-maint`），"
+    "`lib/index.js` 的改动要重启宿主才生效",
 ]
 
 

@@ -1,0 +1,21 @@
+# Dependabot：只管 GitHub Actions 的版本
+#
+# 为什么不配 npm：
+#   这个插件**没有运行时依赖**（`package.json` 只有 devDependencies 里的 typescript 类型包，
+#   安装时不会拉进来）。真正的"依赖"是宿主的 DSH 版本和 meow-memory，
+#   那两个用 `peerDependencies` 声明（>=0.32.0），由 Dependabot 管不了。
+#
+# 所以这里只盯 workflow 里 actions 的版本——它们过期了会静默失效（比如 v3 被弃用）。
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    open-pull-requests-limit: 3

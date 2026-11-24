@@ -36,7 +36,12 @@ if sys.stdout is not None:
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # 脚本现在住在插件根，直接在 HERE 找 py-core；找不到再按老布局往上一级找
-ROOT = HERE if os.path.isdir(os.path.join(HERE, "py-core")) else os.path.join(os.path.dirname(HERE), "tools", "dsh-memory-maint")
+# 2026-11-24：移到 tests/ 后，从这里往上找插件根（含 py-core 的那层）
+ROOT = HERE
+for _ in range(3):
+    if os.path.isdir(os.path.join(ROOT, "py-core")):
+        break
+    ROOT = os.path.dirname(ROOT)
 PY = sys.executable
 MEM = os.path.join(ROOT, "py-core", "mem.py")
 
