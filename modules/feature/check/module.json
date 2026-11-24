@@ -21,5 +21,15 @@
       "script": "py/memory-weight-check2.py",
       "skipIf": "ci"
     }
-  }
+  },
+  "order": [
+    "agents",
+    "agentsmem",
+    "refs",
+    "audit",
+    "health",
+    "signal",
+    "source",
+    "archive"
+  ]
 }
