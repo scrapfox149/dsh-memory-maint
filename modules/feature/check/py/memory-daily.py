@@ -157,8 +157,13 @@ def main():
                 for l in detail.split("\n")[:10]:
                     if l.strip():
                         print("       " + l.strip()[:96])
+        # 检查类脚本的契约：**无论有没有问题都要打一行「结论：」**——
+        # 冒烟靠它区分「跑完了但有警告」和「跑崩了」。
+        # 2026-11-24 压缩输出时漏了这行，有 todo 时冒烟就判失败（自己引入的 bug）。
+        print("结论：⚠ %d 件事要做" % len(todo))
     else:
-        print("✅ 没事要做")
+        # 结论行本身就说明了"没事要做"，不必再单独打一行 ✅（压缩的目的就是别啰嗦）
+        print("结论：✅ 没事要做")
 
     if ignore:
         print("不用管的：%s" % " / ".join(t for t, _ in ignore))
