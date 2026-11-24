@@ -204,7 +204,7 @@ def _state_dir():
         return env
     try:
         from paths import workspace_root
-        return os.path.join(workspace_root(), "tools", "dsh-memory-maint", "state")
+        return os.path.join(workspace_root(), "tools", "dsh-memory-maint", ".local", "state")
     except Exception:
         return None
 

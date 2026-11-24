@@ -185,7 +185,7 @@ def dream_log(since_ms=0, db=None):
 # 日志目录：优先环境变量（插件装在 node_modules 时，由 Node 层指到工作区，
 # 避免"工具写副本、命令行写工作区"两份日志）——2026-11-18 实测发现。
 _STATE_DIR = (os.environ.get("DSH_MEMORY_LOG_DIR")
-              or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "state"))
+              or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".local", "state"))
 _RUNTIME = os.path.join(_STATE_DIR, "runtime.log")
 _ERRORS = os.path.join(_STATE_DIR, "errors.jsonl")
 KEEP_DAYS = int(os.environ.get("DSH_MEMORY_LOG_DAYS", "7"))

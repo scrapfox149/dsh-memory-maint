@@ -110,7 +110,7 @@ def main():
         okay.append("插件自检 %s" % (("模块%s" % grep_int(out, r"模块\s*(\d+)")) if "模块" in out else "通过"))
 
     # ---- 5. 告警：只看本次新增异常 ----
-    err_file = os.path.join(os.environ.get("DSH_MEMORY_LOG_DIR") or os.path.join(ROOT, "state"),
+    err_file = os.path.join(os.environ.get("DSH_MEMORY_LOG_DIR") or os.path.join(ROOT, ".local", "state"),
                             "errors.jsonl")
 
     def exc_count(path):
