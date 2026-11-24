@@ -1,0 +1,10 @@
+{
+  "_comment": "dsh-memory-maint 的本地配置。改完下次调用即生效。没写的项用代码里的默认值。",
+  "start": {
+    "_comment": "mem_check start（开工前提示）的行为",
+    "expandOnPyChanges": true,
+    "expandOnDocsOnly": false,
+    "timeoutSeconds": 10,
+    "showTodoCount": true
+  }
+}
