@@ -58,11 +58,13 @@ def keywords_of(row):
 
 
 def main():
-    args = [a for a in sys.argv[1:]]
+    args = [a for a in sys.argv[1:] if a != "--full"]
+    full = "--full" in sys.argv[1:]
     if not args:
-        print("用法：mem.py why \"<查询>\"")
+        print("用法：mem.py why \"<查询>\" [--full]")
         print()
-        print("输出：查询里哪些词撞上了每条记忆的关键词（词面重叠，不是 BM25 分数）")
+        print("输出：查询里哪些词撞上了每条记忆（词面重叠，不是 BM25 分数）")
+        print("      --full 强制连正文一起扫（默认只在关键词命中少于 3 条时才扫正文）")
         # 不带参数 = 看用法，不是失败（冒烟测试会无参调用每个脚本）
         return 0
 
@@ -95,7 +97,29 @@ def main():
                 if (k_grams & q_all) or any(g in k for g in q_grams):
                     hit.append(k)
             if hit:
-                rows.append((len(hit), tier, r, hit))
+                rows.append((len(hit), tier, r, hit, "关键词"))
+
+    # 2026-11-24：关键词命中太少时，**自动再扫一遍正文**——
+    # memory_search 会读 content，所以"关键词没重叠"不等于"不会命中"。
+    # 阈值 3 条：够 3 条说明关键词已经能解释清楚，不必做全库扫描（慢）；
+    # 不到 3 条才值得花时间看正文。`--full` 可以强制扫。
+    scanned = False
+    if len(rows) < 3 or full:
+        scanned = True
+        seen = set((r.get("tier"), r.get("id")) for _n, _t, r, _h, _src in rows)
+        for tier in TIERS:
+            for r in load([tier]):
+                if r.get("status") not in (None, "active"):
+                    continue
+                if (r.get("tier"), r.get("id")) in seen:
+                    continue
+                content = str(r.get("content") or "")
+                if not content:
+                    continue
+                c_grams = bigrams(content)
+                hit = sorted(q_all & c_grams)
+                if hit:
+                    rows.append((len(hit), tier, r, hit, "正文"))
 
     if not rows:
         print("没有记忆的关键词与这个查询有词面重叠。")
@@ -108,18 +132,20 @@ def main():
     print("=== 为什么会被命中（词面重叠，不是 BM25 分数）===")
     print("查询：%s" % query)
     print("查询切出的词：%s" % " / ".join(sorted(q_all)))
+    print("扫描范围：关键词%s" % (" + 正文（--full）" if full else
+                                  (" + 正文（关键词命中不足 3 条，自动补扫）" if scanned else "")))
     print()
-    print("有 %d 条记忆的关键词与查询重叠，显示前 %d 条：" % (total, min(total, MAX_SHOW)))
+    print("有 %d 条记忆与查询有词面重叠，显示前 %d 条：" % (total, min(total, MAX_SHOW)))
     print()
-    for n, tier, r, hit in rows[:MAX_SHOW]:
+    for n, tier, r, hit, src in rows[:MAX_SHOW]:
         iid = str(r.get("id") or "")[:12]
         content = (r.get("content") or "").replace("\n", " ")
         if len(content) > 60:
             content = content[:60] + "…"
-        print("[%s] [%s] 撞上 %d 个：%s" % (tier, iid, n, " / ".join(hit)))
+        print("[%s] [%s] 撞上 %d 个（%s）：%s" % (tier, iid, n, src, " / ".join(hit)))
         print("   %s" % content)
     print()
-    print("说明：这里只比**关键词**是否出现在查询里；memory_search 还会读正文、算 BM25、")
+    print("说明：这里只比**词面**（关键词，必要时补正文）；memory_search 还会算 BM25、")
     print("      按重要性/新鲜度加权，所以排序和命中范围都会不同。要精确请用它。")
     return 0
 

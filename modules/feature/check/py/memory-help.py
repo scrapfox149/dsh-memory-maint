@@ -81,6 +81,22 @@ def collect():
     return out
 
 
+# 「我想干什么 → 用哪个」——比按工具列清单更贴近"要用时想得起来"（2026-11-24）
+INTENTS = [
+    ("今天有什么要做的", "mem_check daily"),
+    ("记忆写得对不对（写法/信号/来源）", "mem_check quality"),
+    ("引用的东西还在不在", "mem_check integrity"),
+    ("某条为什么被命中", 'mem_query why "<查询>"'),
+    ("跟这个相关的还有哪些", 'mem_query expand "<关键词>"'),
+    ("间接相关、1 跳够不着的", 'mem_query hipporag "<查询>"'),
+    ("有没有该退场/重复的", "mem_maint decay / dedup / dream"),
+    ("某一天的记忆脉络", "mem_maint timeline"),
+    ("备份 / 恢复", "mem_backup export / restore"),
+    ("出问题了看告警", "mem_alert"),
+    ("插件自己有没有毛病", "mem_status"),
+]
+
+
 def main():
     filt = sys.argv[1].lower() if len(sys.argv) > 1 else ""
     groups = collect()
@@ -93,6 +109,17 @@ def main():
         print("没找到匹配「%s」的工具/动作。" % filt)
         print("跑 `mem_check help`（不带参数）看全部。")
         return 1
+
+    # 先按「我想干什么」列——要记接口才能用，说明工具没适应人
+    if not filt:
+        print("=== 我想干什么？ ===")
+        print()
+        for what, how in INTENTS:
+            print("  %-32s →  %s" % (what, how))
+        print()
+        print("（下面按工具列完整清单；忘了某个动作名也跑这个）")
+        print()
+
     print("=== 插件动作清单（%d 个工具 / %d 个动作）===" % (len(groups), total))
     print()
     for g in groups:
