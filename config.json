@@ -70,5 +70,14 @@
   "agent": {
     "_comment": "AI 的名字。备份/恢复文档里会用它；不配就用默认的「鱼」。换名字不影响任何数据。",
     "name": "鱼"
+  },
+  "tools": {
+    "_comment": "工具级开关。不配 = 全开；写成 false 的那个不注册（宿主工具列表里就不出现）。注意这是插件内开关，和 DSH 自己的「停用插件」不冲突。",
+    "mem_check": true,
+    "mem_maint": true,
+    "mem_query": true,
+    "mem_backup": true,
+    "mem_alert": true,
+    "mem_status": true
   }
 }
