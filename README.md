@@ -130,6 +130,13 @@ py-core/              基础层
 
 版本历史见 [`CHANGELOG.md`](./CHANGELOG.md)。
 
+## 可配置项
+
+六段配置全在插件根的 config.json（AI 名字 / 开工清单 / 工具开关 / 备份路径 / 本机设施 / 导出去向），
+**改配置不用改代码**。每一项的说明、默认值、常见问法见 **[CONFIG.md](CONFIG.md)**。
+
+跑 mem_check help 也能看到摘要——**AI 第一次运行就能知道有这些可配置**。
+
 ## 安装
 
 **前置**：先装 [`meow-memory`](https://github.com/Phant0Meow/dsh-meow-memory)——本插件维护的是它的库。

@@ -141,6 +141,21 @@ def main():
         print("（下面按工具列完整清单；忘了某个动作名也跑这个）")
         print()
 
+        # 2026-11-24：**可配置项要让第一次看到这里的 AI 知道**。
+        # 用户提：「我们得写个文件来告诉AI有哪些可配置，然后得保证它能在第一次运行就能看见」。
+        # 于是：专门写了 CONFIG.md，并把摘要摆在这里——AI 跑 help 就能看到、进而告诉用户。
+        print("=== 可以改的（config.json，详见插件根的 CONFIG.md）===")
+        print()
+        print("  AI 的名字          agent.name            默认 DeepSeek")
+        print("  开工清单           start.checklist       默认 start-checklist.md")
+        print("  工具开关           tools.<工具名>        不配=全开；⚠ 改了要重启宿主")
+        print("  备份路径 / 份数     backup.targets        默认 2 个；配 1 个就只备一份")
+        print("  导出目录           backup.exportDir      默认 workspace/memory-export")
+        print("  本机设施路径        paths.*               没配就跳过（不算故障）")
+        print()
+        print("  用户问「能不能改 X」→ 先看 CONFIG.md，别猜。")
+        print()
+
     print("=== 插件动作清单（%d 个工具 / %d 个动作）===" % (len(groups), total))
     print()
 
