@@ -2,7 +2,7 @@
 
 给 **DSH 记忆库**做维护的一套工具：**体检、去重、衰减、检索、备份**。
 
-> 30 个 Python 脚本 / 3329 行 · 6 个 MCP 工具 / 31 个动作
+> 35 个 Python 脚本 / 4423 行 · 6 个 MCP 工具 / 36 个动作
 > 逻辑全在 Python，Node 层只做工具注册与转发。
 
 ---
@@ -102,7 +102,7 @@ py-core/              基础层
 
 ## 状态
 
-- 30 个 Python 脚本 / 3329 行
+- 35 个 Python 脚本 / 4423 行
 - 冒烟测试 **30/30**
 - 已装进 desktop profile
 
@@ -148,7 +148,7 @@ py-core/              基础层
 调 `mem_status`（不传参数），应该看到：
 
 ```
-模块 6 个 / 脚本 30 个
+模块 6 个 / 脚本 35 个
   ✅ backup   rescue   mem_backup   命令 2 / 脚本 2
   ✅ feature  check    mem_check    命令 13 / 脚本 13
   ...

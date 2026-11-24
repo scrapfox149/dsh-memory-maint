@@ -7,6 +7,46 @@
 
 ---
 
+## [未发布] - 2026-11-24
+
+### 新增
+
+- **`mem_check start`**：开工前把四问/五思摆到眼前，按需展开。
+  - 有未提交的 `.py` 改动 → 展开完整四问 + 五思 + 正在改的脚本清单
+  - 工作区干净 → 一句话「四问可省」
+  - 由 `config.json` 的 `start` 段控制（`expandOnPyChanges` / `expandOnDocsOnly` / `timeoutSeconds` / `showTodoCount`）
+- **`mem_check quality`**：把 `audit` / `signal` / `source` 压成一份可读结果（合并入口，不合并脚本）
+- **`mem_check integrity`**：把 `refs` / `agents` / `agentsmem` / `archive` 压成一份
+- **`mem_query why`**：看查询里哪些词撞上了记忆的关键词（词面重叠，不是 BM25 分数）；
+  关键词命中不足 3 条时自动补扫正文，`--full` 可强制
+- **`mem_query project`**：一个项目的记忆全景（条数 / 各层分布 / 最近更新 / 待办 / 重复嫌疑）
+- **`mem_check help`** 加「我想干什么」段（按意图列 11 条，再给完整清单）
+
+### 改进
+
+- **`mem.py` 从 `module.json` 读分组**：原来 `GROUPS` 是手抄的、已经落后
+  （13 个 `mem_check` 命令只抄了 8 个，`backup` 组整个没有）
+- **支持直接用动作名**：`mem.py daily` == `mem.py check daily`
+- **`mem_check` 的体检顺序**挪进 `module.json` 的 `order` 字段
+- **`memory-daily` 输出从 7 段压到 4 行**：结论前置，解释挪进 `--verbose`
+- **`check-agents` 按平台分流**：非 Windows 上跳过本机设施检查（标「跳过」不标「问题」）
+
+### 工具链
+
+- **B 方案：白名单外的脚本必须自带 `--selftest`**
+  - `config.json` 的 `selftest.legacy` 登记 35 个老脚本
+  - 冒烟会跑 `--selftest` 并验**输出里有没有「自测」字样**
+    （只看退出码会让不认参数的脚本蒙混过关）
+- **`skipIf` 机制**：`module.json` 的 `commands` 可以声明「什么环境下不该跑」
+
+### 修复
+
+- **`memory-daily` 漏了「结论：」行**：压缩输出时删掉的，有 todo 时冒烟会判失败
+- **冒烟结果行的总数**：改用 `passed + failed`，原来用 `len(CHECKS)`，
+  白名单外脚本执行两次时账对不上
+
+---
+
 ## [0.2.0] - 2026-11-23
 
 ### 修复
