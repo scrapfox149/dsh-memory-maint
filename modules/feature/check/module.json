@@ -20,7 +20,9 @@
     "weight2": {
       "script": "py/memory-weight-check2.py",
       "skipIf": "ci"
-    }
+    },
+    "quality": "py/memory-quality.py",
+    "integrity": "py/memory-integrity.py"
   },
   "order": [
     "agents",
