@@ -22,7 +22,8 @@
       "skipIf": "ci"
     },
     "quality": "py/memory-quality.py",
-    "integrity": "py/memory-integrity.py"
+    "integrity": "py/memory-integrity.py",
+    "start": "py/memory-start.py"
   },
   "order": [
     "agents",
