@@ -15,6 +15,14 @@ import sys
 import tempfile
 
 # 脚本在 tests/ 里；插件根是它的父，工作区是插件的父（tools/）的父
+# 2026-11-24：CI（windows-latest）的 Python 默认用 cp1252 打 stdout，
+# 中文一 print 就 UnicodeEncodeError。其他测试脚本都有这段，这个补上。
+if sys.stdout is not None:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 2026-11-24：CI 的目录是 <repo>/<repo>/ 两层同名，dirname(dirname(BASE)) 会算到
 # /home/runner/work 去。所以**环境变量优先**（workflow 里设了 DSH_MEMORY_WORKSPACE），
