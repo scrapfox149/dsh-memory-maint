@@ -26,12 +26,20 @@ if sys.stdout is not None:
     except Exception:
         pass
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+_here = os.path.dirname(os.path.abspath(__file__))
+# 2026-11-24：测试脚本移到 tests/ 了，所以从这里往上找插件根（含 py-core 的那层）。
+# 放在根目录或 tests/ 都能跑。
+ROOT = _here
+for _ in range(3):
+    if os.path.isdir(os.path.join(ROOT, "py-core")):
+        break
+    ROOT = os.path.dirname(ROOT)
+
 PY = sys.executable
 def discover():
     """分层扫描 modules/<层>/<模块>/py/*.py —— 加模块不用改本文件"""
     out = []
-    mod_root = os.path.join(HERE, "modules")
+    mod_root = os.path.join(ROOT, "modules")
     if not os.path.isdir(mod_root):
         return out
     for layer in sorted(os.listdir(mod_root)):
@@ -61,7 +69,7 @@ def load_skip_map():
     """
     import json
     out = {}
-    mod_root = os.path.join(HERE, "modules")
+    mod_root = os.path.join(ROOT, "modules")
     if not os.path.isdir(mod_root):
         return out
     for layer in sorted(os.listdir(mod_root)):
@@ -109,7 +117,7 @@ NEEDS_ARGS = {
 
 
 def run_one(layer, mod, script, db=None):
-    path = os.path.join(HERE, "modules", layer, mod, "py", script)
+    path = os.path.join(ROOT, "modules", layer, mod, "py", script)
     if not os.path.exists(path):
         return False, "脚本不存在"
     # CI 上跳过「必须有本机环境才有意义」的脚本（跳过也要说清原因，别静默）
@@ -119,7 +127,7 @@ def run_one(layer, mod, script, db=None):
         return True, "跳过：" + why_skip
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
-    env["PYTHONPATH"] = os.path.join(HERE, "py-core") + (
+    env["PYTHONPATH"] = os.path.join(ROOT, "py-core") + (
         ";" + env["PYTHONPATH"] if env.get("PYTHONPATH") else ""
     )
     if db:
@@ -156,7 +164,7 @@ def load_selftest_whitelist():
     冒烟就会红，这是**让规则有后果**。
     """
     import json
-    path = os.path.join(HERE, "config.json")
+    path = os.path.join(ROOT, "config.json")
     if not os.path.isfile(path):
         return None          # 没配置就不检查（不因缺配置让冒烟红）
     try:
@@ -177,10 +185,10 @@ def run_selftest(layer, mod, script):
     ⚠ **不能只看退出码**：不认 --selftest 参数的脚本会直接跑主流程、返回 0，
     被误判成"自测通过"（2026-11-24 用假脚本实测到）。必须验输出里**真有自测结果**。
     """
-    path = os.path.join(HERE, "modules", layer, mod, "py", script)
+    path = os.path.join(ROOT, "modules", layer, mod, "py", script)
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
-    env["PYTHONPATH"] = os.path.join(HERE, "py-core")
+    env["PYTHONPATH"] = os.path.join(ROOT, "py-core")
     try:
         r = subprocess.run([PY, path, "--selftest"], capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=120, env=env)

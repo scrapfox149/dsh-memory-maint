@@ -22,7 +22,7 @@ dsh-memory-maint/
 │       └── rescue/   mem_backup   2 命令
 ├── py-core/mem_db.py         基础层：契约层（唯一读库入口）
 ├── state/                    日志（runtime.log / errors.jsonl，7 天过期）
-├── test-mem-plugin.py        冒烟测试
+├── 	ests/test-mem-plugin.py        冒烟测试
 ├── DEVELOPING.md             本文件
 └── README.md                 使用说明
 ```
@@ -40,7 +40,7 @@ dsh-memory-maint/
 ### 加一个命令（到现有模块）
 1. 把 `xxx.py` 放进 `modules/<层>/<模块>/py/`
 2. `module.json` 的 `commands` 加一行：`"新动作": "py/xxx.py"`
-3. 跑冒烟：`python test-mem-plugin.py`
+3. 跑冒烟：`python tests/test-mem-plugin.py`
 
 **`skipIf`：命令自己声明「什么环境下不该跑」**（2026-11-24）
 
@@ -109,19 +109,19 @@ CI 上跑它们必然失败，但**那不是脚本坏了**。让模块自己声�
 
 ### 最小检查（改一个脚本）
 ```bash
-python test-mem-plugin.py          # 冒烟：28 项必须全绿
+python tests/test-mem-plugin.py          # 冒烟：35 项必须全绿
 ```
 
 ### 中等检查（改 module.json / 加命令）
 ```bash
-python test-mem-plugin.py          # 冒烟
+python tests/test-mem-plugin.py          # 冒烟
 python tools/mem.py list           # 确认分组与命令列表
 python modules/observe/status/py/memory-status.py   # 自检（mem_status 不在 CLI 分组里）
 ```
 
 ### 完整检查（改架构 / 加层 / 动 lib/index.js）
 ```bash
-python test-mem-plugin.py          # ① 冒烟
+python tests/test-mem-plugin.py          # ① 冒烟
 python tools/mem.py list           # ② CLI 分组能发现
 python modules/observe/status/py/memory-status.py   # ③ 自检
 # ④ Node 工具注册（用 node 模拟 apply）
@@ -143,8 +143,8 @@ python tools/mem.py check          # 全局体检 11 项零异常
 
 | 类型 | 命令 | 通过标准 |
 |---|---|---|
-| **冒烟** | `python test-mem-plugin.py` | 28/28，无 Traceback |
-| **空库** | `python test-mem-plugin.py --db tmp/plugin-lab/empty.db` | 28/28 |
+| **冒烟** | `python tests/test-mem-plugin.py` | 35/35，无 Traceback |
+| **空库** | `python tests/test-mem-plugin.py --db tmp/plugin-lab/empty.db` | 35/35 |
 | **缺列库** | 造一个删了列的库再跑 | 28/28 且 `errors.jsonl` 有降级记录 |
 | **与旧版对比** | archive 里的原始版 vs 现在，同库跑 | 输出逐行一致 |
 | **参数** | `--db` / `--days` / `--top` / 非法值 | 生效 + 非法值报错 |
@@ -209,7 +209,7 @@ python tools/mem.py check          # 全局体检 11 项零异常
 
 ## 八、上线前检查清单
 
-- [ ] `python test-mem-plugin.py` → 28/28
+- [ ] `python tests/test-mem-plugin.py` → 35/35
 - [ ] `python modules/observe/status/py/memory-status.py` → 一切正常
 - [ ] `python tools/mem.py check` → 11 项零异常
 - [ ] `python check-memory-refs.py` → 不存在的 0
@@ -282,7 +282,7 @@ python tools/sync-plugin.py            # 同步
 python tools/sync-plugin.py --check    # 只对比，不写
 ```
 
-**同步范围**：`lib/ modules/ py-core/ cordis.patch.yml package.json README.md DEVELOPING.md test-mem-plugin.py`
+**同步范围**：`lib/ modules/ py-core/ cordis.patch.yml package.json README.md DEVELOPING.md 	ests/test-mem-plugin.py`
 **不同步**：`state/`（运行日志，两边各管各的）。
 
 **同步前会自动备份目标原内容** → `tmp/plugin-sync-backup/`。

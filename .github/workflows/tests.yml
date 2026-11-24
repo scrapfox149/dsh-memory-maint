@@ -24,7 +24,7 @@ jobs:
 
       # ① 纯函数数值（不碰库）
       - name: 单元测试（decay / text）
-        run: python test-units.py
+        run: python tests/test-units.py
 
       # ② 冒烟：每个脚本都能跑起来、不抛 Traceback
       #    用空库——CI 上没有真实记忆库，也不该有
@@ -33,7 +33,7 @@ jobs:
       #    2026-11-24 第一版写在 `shell: python` 里，heredoc 处理方式和 bash 不同，
       #    CI 上直接 failure；落成 test-make-db.py 后两边都能跑。
       - name: 造一个空库
-        run: python test-make-db.py tmp/ci.db
+        run: python tests/test-make-db.py tmp/ci.db
 
       - name: 冒烟测试（空库）
-        run: python test-mem-plugin.py --db tmp/ci.db
+        run: python tests/test-mem-plugin.py --db tmp/ci.db
