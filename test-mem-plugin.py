@@ -51,19 +51,60 @@ def discover():
 CHECKS = discover()
 
 
+def load_skip_map():
+    """从各 module.json 读 `skipIf` 声明：{脚本名: 条件}。
+
+    2026-11-24：原来是在本文件里硬编码 CI_ONLY_SKIP 字典——
+    那等于"测试脚本替模块决定什么时候不该跑"。
+    现在由**模块自己声明**（module.json 里 `{"script": ..., "skipIf": "ci"}`），
+    加新脚本要跳过时只改 module.json，不用动测试。
+    """
+    import json
+    out = {}
+    mod_root = os.path.join(HERE, "modules")
+    if not os.path.isdir(mod_root):
+        return out
+    for layer in sorted(os.listdir(mod_root)):
+        layer_dir = os.path.join(mod_root, layer)
+        if not os.path.isdir(layer_dir):
+            continue
+        for mod in sorted(os.listdir(layer_dir)):
+            mf = os.path.join(layer_dir, mod, "module.json")
+            if not os.path.isfile(mf):
+                continue
+            try:
+                with open(mf, encoding="utf-8") as f:
+                    m = json.load(f)
+            except Exception:
+                continue
+            for spec in (m.get("commands") or {}).values():
+                if isinstance(spec, dict) and spec.get("skipIf"):
+                    script = os.path.basename(str(spec.get("script", "")))
+                    if script:
+                        out[script] = str(spec["skipIf"])
+    return out
+
+
+SKIP_MAP = load_skip_map()
+SKIP_REASONS = {
+    "ci": "CI 环境（没有本机设施）",
+    "no-network": "无网络环境",
+}
+
+
+def skip_hit(script):
+    """这个脚本在当前环境该跳过吗？返回原因字符串或 None。"""
+    cond = SKIP_MAP.get(script)
+    if not cond:
+        return None
+    if cond == "ci" and os.environ.get("CI"):
+        return SKIP_REASONS["ci"]
+    return None
+
+
 # 有些脚本不带参数会返回非 0（提示用法），冒烟时补上安全参数
 NEEDS_ARGS = {
     "memory-restore.py": ["--verify"],   # 演练模式，不碰活库
-}
-
-# 只在「有本机环境」时才成立、CI 上必然缺前置的脚本。
-# 2026-11-24：CI 跑到 28/30，挂的这两个都不是坏，是环境不对——
-#   check-agents.py            检查计划任务 / E:\DSH\memory\archive 等本机设施
-#   memory-weight-check2.py    读 tmp/memory-snapshot.json（要先跑 memory-map-export）
-# 判据：`CI` 环境变量存在（GitHub Actions 默认设 CI=true）→ 跳过并说明。
-CI_ONLY_SKIP = {
-    "check-agents.py": "检查本机计划任务与归档目录，CI 上没有",
-    "memory-weight-check2.py": "需要 tmp/memory-snapshot.json 前置产物，CI 上没有",
 }
 
 
@@ -72,8 +113,10 @@ def run_one(layer, mod, script, db=None):
     if not os.path.exists(path):
         return False, "脚本不存在"
     # CI 上跳过「必须有本机环境才有意义」的脚本（跳过也要说清原因，别静默）
-    if os.environ.get("CI") and script in CI_ONLY_SKIP:
-        return True, "CI 跳过：" + CI_ONLY_SKIP[script]
+    # 模块自己声明了 skipIf 且当前环境命中 → 跳过（跳过也打印原因，别静默）
+    why_skip = skip_hit(script)
+    if why_skip:
+        return True, "跳过：" + why_skip
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONPATH"] = os.path.join(HERE, "py-core") + (

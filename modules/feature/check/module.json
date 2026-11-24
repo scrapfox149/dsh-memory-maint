@@ -7,13 +7,19 @@
     "audit": "py/memory-audit.py",
     "health": "py/memory-health.py",
     "refs": "py/check-memory-refs.py",
-    "agents": "py/check-agents.py",
+    "agents": {
+      "script": "py/check-agents.py",
+      "skipIf": "ci"
+    },
     "agentsmem": "py/check-agents-memory.py",
     "signal": "py/memory-signal-check.py",
     "source": "py/memory-source-check.py",
     "archive": "py/memory-archive-check.py",
     "promises": "py/memory-promises.py",
     "sample": "py/memory-sample.py",
-    "weight2": "py/memory-weight-check2.py"
+    "weight2": {
+      "script": "py/memory-weight-check2.py",
+      "skipIf": "ci"
+    }
   }
 }
