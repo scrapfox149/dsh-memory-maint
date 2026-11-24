@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """工作区路径解析 —— 不再硬编码 C:\\Users\\...\\default-workspace。
 
 五思：
@@ -29,7 +29,12 @@ import os
 # 环境变量名（与 mem_db.py 的 DSH_MEMORY_DB 同一家族）
 ENV_WORKSPACE = "DSH_MEMORY_WORKSPACE"
 
-_MARKERS = (".dsh-meow", "AGENTS.md")
+# 工作区的标志物：**只认「装着库的」 `.dsh-meow`**（含 memory.db）。
+# 走过的弯路（2026-11-24 实测）：
+#   ① `.dsh-meow` 目录 → 命中 `~/.dsh-meow`（meow-memory 的**全局状态目录**，不是工作区）
+#   ② `AGENTS.md` → 命中 `~/.dsh/AGENTS.md`（**全局约定**，也不是工作区）
+# 只有「有 memory.db 的 .dsh-meow」才唯一标识一个记忆工作区。
+_MARKERS = (os.path.join(".dsh-meow", "memory.db"),)
 _MAX_UP = 8
 
 
