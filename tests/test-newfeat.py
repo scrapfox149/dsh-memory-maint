@@ -16,7 +16,11 @@ import tempfile
 
 # 脚本在 tests/ 里；插件根是它的父，工作区是插件的父（tools/）的父
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WORKSPACE = os.path.dirname(os.path.dirname(BASE))
+# 2026-11-24：CI 的目录是 <repo>/<repo>/ 两层同名，dirname(dirname(BASE)) 会算到
+# /home/runner/work 去。所以**环境变量优先**（workflow 里设了 DSH_MEMORY_WORKSPACE），
+# 没设才按本地布局推。
+WORKSPACE = (os.environ.get("DSH_MEMORY_WORKSPACE")
+             or os.path.dirname(os.path.dirname(BASE)))
 PY = sys.executable
 MEM = os.path.join(BASE, "py-core", "mem.py")
 sys.path.insert(0, os.path.join(BASE, "py-core"))
