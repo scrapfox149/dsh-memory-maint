@@ -37,3 +37,13 @@ jobs:
 
       - name: 冒烟测试（空库）
         run: python tests/test-mem-plugin.py --db tmp/ci.db
+
+      # ⑤ 新功能的边界（agent.name / backup.targets / audit --all / args 转发 / help 摘要）
+      - name: 新功能边界
+        run: python tests/test-newfeat.py
+
+      # ⑥ 全量：15 组极端场景（42 断言）——包含 10 万条、损坏库、并发、只读等
+      #    慢（几分钟），但这是「发版前必跑」的那一个，CI 上也不能省
+      - name: 全量测试（极端场景）
+        run: python tests/test-full.py
+        timeout-minutes: 20

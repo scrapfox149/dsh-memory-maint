@@ -1,0 +1,136 @@
+# -*- coding: utf-8 -*-
+"""新功能的边界测试（这些不在 test-full.py 的 15 组里）。
+
+覆盖：
+① agent_name() 的空/超长/环境变量覆盖
+② backup.targets 的 0 / 1 / N
+③ audit --all 能不能真的看全
+④ mem.py 的 args 转发（clear 必须带 --clear-errors --yes）
+⑤ help 里必须有「可以改的」段
+"""
+import json
+import os
+import subprocess
+import sys
+import tempfile
+
+# 脚本在 tests/ 里；插件根是它的父，工作区是插件的父（tools/）的父
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORKSPACE = os.path.dirname(os.path.dirname(BASE))
+PY = sys.executable
+MEM = os.path.join(BASE, "py-core", "mem.py")
+sys.path.insert(0, os.path.join(BASE, "py-core"))
+
+passed, failed = [], []
+
+
+def check(name, ok, detail=""):
+    (passed if ok else failed).append(name)
+    print("  %s %s%s" % ("✅" if ok else "❌", name, ("  → " + detail) if detail else ""))
+
+
+def run(args, env_extra=None, timeout=120):
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONPATH"] = os.path.join(BASE, "py-core")
+    env["DSH_MEMORY_WORKSPACE"] = WORKSPACE
+    if env_extra:
+        env.update(env_extra)
+    r = subprocess.run([PY, MEM] + args, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=timeout, env=env)
+    return r
+
+
+def main():
+    tmpd = tempfile.mkdtemp(prefix="newfeat-")
+    print("=== 新功能边界测试 ===\n临时目录: %s\n" % tmpd)
+
+    # ── ① agent_name() ────────────────────────────────────────────
+    print("【① agent_name()】")
+    import importlib
+    import paths
+    importlib.reload(paths)
+
+    got = paths.agent_name()
+    check("默认/配置值可取到", bool(got), "得到 %r" % got)
+
+    old = os.environ.pop("DSH_AGENT_NAME", None)
+    os.environ["DSH_AGENT_NAME"] = ""
+    importlib.reload(paths)
+    check("空环境变量不覆盖（回落配置）", paths.agent_name() == got,
+          "得到 %r" % paths.agent_name())
+
+    os.environ["DSH_AGENT_NAME"] = "x" * 300
+    importlib.reload(paths)
+    check("超长名字不崩", paths.agent_name() == "x" * 300, "长度 %d" % len(paths.agent_name()))
+
+    os.environ["DSH_AGENT_NAME"] = "带 空格/斜杠\\和\"引号\""
+    importlib.reload(paths)
+    v = paths.agent_name()
+    check("特殊字符不崩", isinstance(v, str) and len(v) > 0)
+
+    if old is not None:
+        os.environ["DSH_AGENT_NAME"] = old
+    else:
+        os.environ.pop("DSH_AGENT_NAME", None)
+    importlib.reload(paths)
+
+    # ── ② backup.targets 的 0 / 1 / N ────────────────────────────
+    print("\n【② backup.targets】")
+    cfg_path = os.path.join(BASE, "config.json")
+    orig = open(cfg_path, encoding="utf-8-sig").read()
+    try:
+        for n, label in ((0, "空数组（应回落默认）"), (1, "1 个"), (3, "3 个")):
+            d = json.loads(orig)
+            d.setdefault("backup", {})["targets"] = ["X:\\t%d" % i for i in range(n)]
+            open(cfg_path, "w", encoding="utf-8", newline="\n").write(
+                json.dumps(d, ensure_ascii=False, indent=2) + "\n")
+            r = run(["status", "status"])
+            check("targets=%d（%s）status 不崩" % (n, label), "已知问题" in r.stdout,
+                  "rc=%d" % r.returncode)
+    finally:
+        open(cfg_path, "w", encoding="utf-8", newline="\n").write(orig)
+    check("config.json 已还原", open(cfg_path, encoding="utf-8").read() == orig)
+
+    # ── ③ audit --all ────────────────────────────────────────────
+    print("\n【③ audit --all】")
+    r1 = run(["audit"])
+    r2 = run(["audit", "--all"])
+    n1 = len(r1.stdout.splitlines())
+    n2 = len(r2.stdout.splitlines())
+    check("--all 比默认长", n2 > n1, "%d 行 → %d 行" % (n1, n2))
+    check("--all 含「建议修」总数", "建议修（" in r2.stdout)
+    check("默认版有截断提示", "还有" in r1.stdout or n1 == n2)
+
+    # ── ④ mem.py 的 args 转发（clear 必须带 --clear-errors）──────
+    print("\n【④ args 转发】")
+    logd = os.path.join(tmpd, "state")
+    os.makedirs(logd, exist_ok=True)
+    errf = os.path.join(logd, "errors.jsonl")
+    with open(errf, "w", encoding="utf-8") as f:
+        for i in ("A", "B"):
+            f.write(json.dumps({"kind": "exception", "script": "t.py",
+                                "error": "假告警 " + i, "time": 1}, ensure_ascii=False) + "\n")
+    before = sum(1 for _ in open(errf, encoding="utf-8"))
+    r = run(["clear"], {"DSH_MEMORY_LOG_DIR": logd})
+    after = sum(1 for _ in open(errf, encoding="utf-8")) if os.path.exists(errf) else 0
+    check("clear 真的清空了（args 传到了）", before == 2 and after == 0,
+          "%d 行 → %d 行" % (before, after))
+
+    # ── ⑤ help 里要有「可以改的」段 ─────────────────────────────
+    print("\n【⑤ help 的可配置摘要】")
+    r = run(["help"])
+    check("help 含「可以改的」", "可以改的" in r.stdout)
+    check("help 含 CONFIG.md 指引", "CONFIG.md" in r.stdout)
+
+    # ── 汇总 ────────────────────────────────────────────────────
+    total = len(passed) + len(failed)
+    print("\n" + "=" * 60)
+    print("新功能边界：%d 通过 / %d 失败 / 共 %d" % (len(passed), len(failed), total))
+    for f in failed:
+        print("  ❌ %s" % f)
+    return 0 if not failed else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
