@@ -104,6 +104,50 @@ py-core/              基础层
 
 版本历史见 [`CHANGELOG.md`](./CHANGELOG.md)。
 
+## 安装
+
+**前置**：先装 [`meow-memory`](https://github.com/Phant0Meow/dsh-meow-memory)——本插件维护的是它的库。
+
+### 1. 登记到 profile
+
+编辑 `~/.dsh/profiles/desktop/package.json`，两处都要加：
+
+```json
+{
+  "dependencies": {
+    "dsh-memory-maint": "file:./node_modules/dsh-memory-maint"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": ["dsh-memory-maint"]
+    }
+  }
+}
+```
+
+> ⚠️ **必须用 `file:` 协议**。写成版本号（如 `"0.2.0"`）会被当成 registry 包，pnpm 去 npm 上找、
+> 找不到，**整个 `pnpm install` 失败**——而且症状看起来像"新插件有问题"，实际是这条埋的雷。
+
+### 2. 让改动生效
+
+| 改了什么 | 怎么生效 |
+|---|---|
+| Python 脚本（`py-core/`、`modules/`） | **下次调用即生效**（每次都是新进程） |
+| `lib/index.js` | **必须重启宿主**（desktop 版只能人工重启） |
+
+### 3. 验证
+
+调 `mem_status`（不传参数），应该看到：
+
+```
+模块 6 个 / 脚本 30 个
+  ✅ backup   rescue   mem_backup   命令 2 / 脚本 2
+  ✅ feature  check    mem_check    命令 13 / 脚本 13
+  ...
+```
+
+看不到这行就是没装好——**别用"没报错"当装好了**。
+
 ## 依赖
 
 - **`meow-memory`**（记忆库本体）—— 本插件的全部工具都读写它管理的那份 SQLite；
