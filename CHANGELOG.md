@@ -9,18 +9,26 @@
 
 ## [未发布] - 2026-11-24
 
+> 今天共 19 个提交。这一版的核心变化是**从「补功能」转向「足够好用、需要时想得起来」**。
+
 ### 新增
 
-- **`mem_check start`**：开工前把四问/五思摆到眼前，按需展开。
-  - 有未提交的 `.py` 改动 → 展开完整四问 + 五思 + 正在改的脚本清单
+**体检类**
+- **`mem_check start`**：开工前把清单摆到眼前，**按需展开**。
+  - 有未提交的 `.py` 改动 → 完整清单 + 正在改的脚本
   - 工作区干净 → 一句话「四问可省」
-  - 由 `config.json` 的 `start` 段控制（`expandOnPyChanges` / `expandOnDocsOnly` / `timeoutSeconds` / `showTodoCount`）
-- **`mem_check quality`**：把 `audit` / `signal` / `source` 压成一份可读结果（合并入口，不合并脚本）
+- **`mem_check quality`**：把 `audit` / `signal` / `source` 压成一份可读结果
 - **`mem_check integrity`**：把 `refs` / `agents` / `agentsmem` / `archive` 压成一份
-- **`mem_query why`**：看查询里哪些词撞上了记忆的关键词（词面重叠，不是 BM25 分数）；
+
+**查询类**
+- **`mem_query why`**：看查询里哪些词撞上了记忆的关键词（**词面重叠，不是 BM25 分数**）；
   关键词命中不足 3 条时自动补扫正文，`--full` 可强制
 - **`mem_query project`**：一个项目的记忆全景（条数 / 各层分布 / 最近更新 / 待办 / 重复嫌疑）
-- **`mem_check help`** 加「我想干什么」段（按意图列 11 条，再给完整清单）
+
+**高级模式**
+- **`mem_check daily --advanced`**：把低频动作（`health` / `weight2` / `sample`）的排障信息
+  并成一个开关——平时 4 行，排障时加参数
+- **有问题时自动提示** `--advanced`（没问题不提——提示本身也是噪音）
 
 ### 改进
 
@@ -30,6 +38,16 @@
 - **`mem_check` 的体检顺序**挪进 `module.json` 的 `order` 字段
 - **`memory-daily` 输出从 7 段压到 4 行**：结论前置，解释挪进 `--verbose`
 - **`check-agents` 按平台分流**：非 Windows 上跳过本机设施检查（标「跳过」不标「问题」）
+- **`mem.py list --json`**：结构化清单，路径用**相对插件根**（不带 `C:\Users\...`）
+- **`help` 分组**：常用动作列全，低频动作单独一行（`health` / `agentsmem` / `source` / `archive` / `sample` / `weight2`）
+- **删掉 `mapexport` 命令**：它被 `map` 取代了（`map` 现在快照不存在时自己先导出）
+
+### 可配置
+
+- **`start-checklist.md`**：开工清单写在文件里（`##` 是分组标题、`>` 是说明不打印）。
+  四问/五思是**这一套**，别人可以换成自己的规则；没文件就用内置默认
+- **`config.json` 的 `start` 段**：`expandOnPyChanges` / `expandOnDocsOnly` / `timeoutSeconds` / `showTodoCount` / `checklist`
+- **`skipIf` 机制**：`module.json` 的 `commands` 可以声明「什么环境下不该跑」（目前 `ci`）
 
 ### 工具链
 
@@ -37,13 +55,19 @@
   - `config.json` 的 `selftest.legacy` 登记 35 个老脚本
   - 冒烟会跑 `--selftest` 并验**输出里有没有「自测」字样**
     （只看退出码会让不认参数的脚本蒙混过关）
-- **`skipIf` 机制**：`module.json` 的 `commands` 可以声明「什么环境下不该跑」
 
 ### 修复
 
 - **`memory-daily` 漏了「结论：」行**：压缩输出时删掉的，有 todo 时冒烟会判失败
 - **冒烟结果行的总数**：改用 `passed + failed`，原来用 `len(CHECKS)`，
   白名单外脚本执行两次时账对不上
+- **`mem.py` 缺 `import os`**：算相对路径时 `NameError` 被 `except Exception` 吞掉，
+  静默退回绝对路径（CLI 输出看着正常，所以连续两次没发现）
+
+### 文档
+
+- **README 写清与 `meow-memory` 的分工**：它管「记忆怎么活」，本插件管「记忆健不健康」
+- **`AGENTS.md` 加 §6.0 日常入口**：`mem.py daily` 这一层，不用记脚本路径
 
 ---
 

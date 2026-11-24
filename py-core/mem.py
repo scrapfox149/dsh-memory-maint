@@ -105,7 +105,11 @@ def run(script, extra=None):
         if out:
             print(out)
         if r.stderr and r.returncode != 0:
-            print("  [stderr] %s" % (r.stderr or "").strip()[:300])
+            # 只打**最后一行**（错误原因通常在末尾），前面是调用栈——截断前 300 字
+            # 会把 FileNotFoundError 那行切掉，用户只看到 `File "C:\..."`（2026-11-24 全量测试抓到）
+            err_lines = [l for l in (r.stderr or "").splitlines() if l.strip()]
+            tail = err_lines[-1] if err_lines else ""
+            print("  [stderr] %s" % tail[:300])
         return r.returncode
     except Exception as e:
         print("  ✗ 执行失败 %s: %s" % (script, e))
