@@ -40,6 +40,37 @@ for _ in range(6):
         break
     ROOT = os.path.dirname(ROOT)
 
+# 配置：插件根目录的 config.json（有就用，没有就全默认）。
+# 2026-11-24：用户要"可选功能"，但设置页（UI）是 B 方案、以后再做；
+# 先给配置文件，改 JSON 即生效。
+DEFAULTS = {
+    "expandOnPyChanges": True,
+    "expandOnDocsOnly": False,
+    "timeoutSeconds": 10,
+    "showTodoCount": True,
+}
+
+
+def load_config():
+    cfg = dict(DEFAULTS)
+    path = os.path.join(ROOT, "config.json")
+    if not os.path.isfile(path):
+        return cfg
+    try:
+        import json
+        with open(path, encoding="utf-8") as f:
+            raw = json.load(f)
+        sec = raw.get("start") or {}
+        for k, v in DEFAULTS.items():
+            if k in sec and not isinstance(sec[k], dict):
+                cfg[k] = sec[k]
+    except Exception:
+        pass          # 配置坏了就用默认，不因为配置让命令崩
+    return cfg
+
+
+CFG = load_config()
+
 
 def git_changes():
     """看工作区里有没有未提交改动，按类型分开数。
@@ -51,7 +82,7 @@ def git_changes():
     try:
         r = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
                            capture_output=True, text=True, encoding="utf-8",
-                           errors="replace", timeout=10)
+                           errors="replace", timeout=CFG["timeoutSeconds"])
         lines = [l for l in (r.stdout or "").splitlines() if l.strip()]
     except Exception:
         return None, None
@@ -78,11 +109,11 @@ def main():
     if py_changes is None:
         heavy = True          # 读不到 git 就保守当"重"（宁可多提醒）
         reason = "读不到 git 状态，保守处理"
-    elif py_changes:
+    elif py_changes and CFG["expandOnPyChanges"]:
         heavy = True
         reason = "检测到 %d 处脚本改动 —— 造工具场景" % len(py_changes)
     elif md_changes:
-        heavy = False
+        heavy = bool(CFG["expandOnDocsOnly"])
         reason = "只有 %d 处文档/配置改动 —— 按硬条件看要不要五思" % len(md_changes)
     else:
         heavy = False
