@@ -44,7 +44,8 @@ for day in sorted(by_day):
             it["tier"], proj, it["id"][:8], it["importance"], content))
     lines.append("")
 
-with open(OUT, "w", encoding="utf-8") as f:
-    f.write("\n".join(lines))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    with open(OUT, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
 print("天数:", len(by_day))
 print("写入:", OUT)
