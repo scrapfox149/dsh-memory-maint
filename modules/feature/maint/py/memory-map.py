@@ -29,6 +29,21 @@ def tokenize(s):
     return set(s[i:i + 2] for i in range(len(s) - 1))
 
 
+# 2026-11-24：快照不存在就自己先导一份，不用再手动跑两次。
+# 原来要 `mem.py mapexport` -> `mem.py map`，两步才能看图谱；现在 `mem.py map` 一步。
+if not os.path.exists(SNAP):
+    _exp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "memory-map-export.py")
+    if os.path.exists(_exp):
+        print("（快照不存在，先导出……）")
+        import subprocess
+        env = dict(os.environ)
+        env["PYTHONIOENCODING"] = "utf-8"
+        r = subprocess.run([sys.executable, _exp], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", env=env, timeout=180)
+        if r.returncode != 0:
+            print("导出失败：" + ((r.stdout or "") + (r.stderr or "")).strip()[:200])
+            raise SystemExit(1)
+
 with open(SNAP, encoding="utf-8") as f:
     items = json.load(f)
 

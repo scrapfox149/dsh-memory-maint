@@ -27,6 +27,7 @@
   python mem.py expand "备份"          # 关系展开
 """
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -111,7 +112,33 @@ def run(script, extra=None):
         return 1
 
 
-def show_list(groups):
+def show_list(groups, as_json=False):
+    if as_json:
+        # 2026-11-24：给"接别的工具"用——`mem.py list --json` 输出结构化清单，
+        # 以后要生成文档、做检查、喂给别的脚本都不用解析人类可读的输出。
+        out = {}
+        _root = str(HERE.parent) + os.sep
+        for g, info in groups.items():
+            rel = {}
+            for k, v in info["cmds"].items():
+                if not v:
+                    continue
+                # 输出**相对插件根**的路径，不用绝对路径——`--json` 可能被别的工具/别人用，
+                # 带 C:\Users\... 既没用又泄露本机布局。
+                # 用字符串截断而不用 os.path.relpath：后者在 Windows 上对某些盘符组合会抛
+                # ValueError（不同驱动器无法相对化），静默落到 except 就变回绝对路径。
+                s = str(v)
+                rel[k] = s[len(_root):] if s.startswith(_root) else s
+            out[g] = {
+                "desc": info["desc"],
+                "layer": info.get("layer", ""),
+                "module": info.get("module", ""),
+                "order": info.get("order", []),
+                "commands": rel,
+            }
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        return 0
+
     print("记忆维护统一入口\n")
     for g, info in groups.items():
         print("【%s】%s" % (g, info["desc"]))
@@ -130,7 +157,7 @@ def main():
     groups = load_groups()
 
     if not args or args[0] in ("list", "-h", "--help"):
-        return show_list(groups)
+        return show_list(groups, as_json=("--json" in sys.argv[1:]))
 
     first = args[0]
 
