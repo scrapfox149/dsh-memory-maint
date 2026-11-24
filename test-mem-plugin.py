@@ -148,6 +148,53 @@ def run_one(layer, mod, script, db=None):
     return True, ""
 
 
+def load_selftest_whitelist():
+    """读 config.json 的 selftest.legacy —— 那批是老脚本，已做过完整测试，不强制 --selftest。
+
+    2026-11-24（B 方案，用户定）：**清单外的脚本必须自带 --selftest**，否则冒烟失败。
+    判据不是"新不新"（没法可靠判断），而是"在不在白名单里"——加新脚本忘了写 selftest，
+    冒烟就会红，这是**让规则有后果**。
+    """
+    import json
+    path = os.path.join(HERE, "config.json")
+    if not os.path.isfile(path):
+        return None          # 没配置就不检查（不因缺配置让冒烟红）
+    try:
+        with open(path, encoding="utf-8") as f:
+            cfg = json.load(f)
+        legacy = (cfg.get("selftest") or {}).get("legacy")
+        return set(legacy) if isinstance(legacy, list) else None
+    except Exception:
+        return None
+
+
+SELFTEST_LEGACY = load_selftest_whitelist()
+
+
+def run_selftest(layer, mod, script):
+    """跑一个脚本的 --selftest。返回 (ok, why)。
+
+    ⚠ **不能只看退出码**：不认 --selftest 参数的脚本会直接跑主流程、返回 0，
+    被误判成"自测通过"（2026-11-24 用假脚本实测到）。必须验输出里**真有自测结果**。
+    """
+    path = os.path.join(HERE, "modules", layer, mod, "py", script)
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONPATH"] = os.path.join(HERE, "py-core")
+    try:
+        r = subprocess.run([PY, path, "--selftest"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=120, env=env)
+    except subprocess.TimeoutExpired:
+        return False, "--selftest 超时"
+    out = (r.stdout or "") + (r.stderr or "")
+    if not ("自测" in out or "selftest" in out.lower()):
+        return False, "不认 --selftest（没输出自测结果）"
+    if r.returncode != 0:
+        tail = out.strip().split("\n")[-1][:70]
+        return False, "--selftest 失败: " + tail
+    return True, ""
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default="", help="指定库路径（默认活库）")
@@ -167,7 +214,27 @@ def main():
             failed += 1
             fails.append((layer, mod, script, why))
 
-    print("\n结果: %d 通过 / %d 失败 / 共 %d" % (passed, failed, len(CHECKS)))
+    # B 方案：白名单外的脚本必须自带 --selftest
+    if SELFTEST_LEGACY is not None:
+        extra = [(l, m, s) for l, m, s in CHECKS if s not in SELFTEST_LEGACY]
+        if extra:
+            print("\n--- 新脚本的 --selftest 检查（白名单外 %d 个）---" % len(extra))
+            for layer, mod, script in extra:
+                ok, why = run_selftest(layer, mod, script)
+                mark = "✅" if ok else "❌"
+                print("  %s %-8s %-10s %s%s" % (mark, layer[:7], mod, script,
+                                                ("  ← " + why) if why else ""))
+                if ok:
+                    passed += 1
+                else:
+                    failed += 1
+                    fails.append((layer, mod, script, why or "缺 --selftest"))
+            print("\n（白名单在 config.json 的 selftest.legacy；老脚本已做过完整测试，不强制）")
+
+    # 总数要用 passed+failed，不能用 len(CHECKS)——
+    # 白名单外的脚本会被检查两次（主流程 + --selftest），len(CHECKS) 会少于实际执行次数，
+    # 出现「35 通过 / 2 失败 / 共 36」这种对不上的账（2026-11-24 实测）
+    print("\n结果: %d 通过 / %d 失败 / 共 %d" % (passed, failed, passed + failed))
     if fails:
         print("\n失败项：")
         for layer, mod, script, why in fails:

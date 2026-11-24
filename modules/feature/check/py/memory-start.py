@@ -101,7 +101,65 @@ def git_head():
         return ""
 
 
+def selftest():
+    """自测：只验自己的逻辑，不依赖真实库和 git。
+
+    2026-11-24（B 方案）：清单外的新脚本必须支持 --selftest。
+    它跑的是**边界用例**——空配置、坏配置、缺项——而不是"能不能跑"。
+
+    跑法：python memory-start.py --selftest
+    """
+    import json
+    import tempfile
+    passed, failed = [], []
+
+    def check(name, cond, detail=""):
+        (passed if cond else failed).append(name + ((" " + detail) if detail and not cond else ""))
+
+    # ① 默认配置的形状
+    check("DEFAULTS 四个键齐全", set(DEFAULTS) == {
+        "expandOnPyChanges", "expandOnDocsOnly", "timeoutSeconds", "showTodoCount"})
+
+    # ② 配置文件不存在 → 全用默认
+    old_root = globals().get("ROOT")
+    try:
+        tmpd = tempfile.mkdtemp()
+        globals()["ROOT"] = tmpd
+        cfg = load_config()
+        check("无 config.json 时用默认", cfg == DEFAULTS)
+
+        # ③ 坏 JSON → 不崩，仍用默认
+        with open(os.path.join(tmpd, "config.json"), "w", encoding="utf-8") as f:
+            f.write("{ 这不是 json ")
+        cfg = load_config()
+        check("坏 config.json 不崩且用默认", cfg == DEFAULTS)
+
+        # ④ 部分配置 → 只覆盖写了的，其余保持默认
+        with open(os.path.join(tmpd, "config.json"), "w", encoding="utf-8") as f:
+            json.dump({"start": {"expandOnPyChanges": False}}, f)
+        cfg = load_config()
+        check("部分配置只覆盖写了的", cfg["expandOnPyChanges"] is False
+              and cfg["timeoutSeconds"] == DEFAULTS["timeoutSeconds"])
+    finally:
+        if old_root is not None:
+            globals()["ROOT"] = old_root
+
+    # ⑤ 输出的关键字样（保证四问/五思真的会打出来）
+    src = open(os.path.abspath(__file__), encoding="utf-8").read()
+    for word in ("四问", "五思", "说明书在哪", "验证要写"):
+        check("输出含「%s」" % word, word in src)
+
+    total = len(passed) + len(failed)
+    print("memory-start 自测：%d 通过 / %d 失败 / 共 %d" % (len(passed), len(failed), total))
+    for f in failed:
+        print("  ❌ %s" % f)
+    return 0 if not failed else 1
+
+
 def main():
+    if "--selftest" in sys.argv:
+        return selftest()
+
     py_changes, md_changes = git_changes()
 
     # 判断场景：只在"真在动工具"时才把完整规则摆出来，否则一句话就够。
