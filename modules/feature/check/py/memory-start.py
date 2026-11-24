@@ -48,7 +48,47 @@ DEFAULTS = {
     "expandOnDocsOnly": False,
     "timeoutSeconds": 10,
     "showTodoCount": True,
+    "checklist": "start-checklist.md",
 }
+
+# 内置默认（没有 checklist 文件时用）。和 start-checklist.md 的内容保持一致。
+# 2026-11-24：用户说「start 应该开放自己改，因为在我们这是五思，在其他人那里可能会是别的规则」——
+# 四问/五思是**这一套**，不是硬规则。所以改成读文件，别人换一套写法即可。
+DEFAULT_CHECKLIST = """## 四问（每次必过，答不上来先别动手）
+
+① 说明书在哪？    grep -l "<关键词>" DEVELOPING.md README.md
+② 功能做过没？    mem.py list | grep <关键词>
+③ 工具够不够？    看上面清单里有没有现成的
+④ 记忆怎么说？    memory_search "<关键词>"
+
+## 五思（造工具类必上；删/移/批量/不可逆按硬条件；短操作可省）
+
+目的 / 方案 / 边界 / 验证 / 退路
+⚠ ④验证要写实测数字，不是「应该对得上」；新脚本自带 --selftest
+"""
+
+
+def load_checklist(cfg):
+    """读清单文件；没有就用内置默认。返回 (文本, 来源说明)。
+
+    文件里 `>` 开头的行是**写给人看的说明**，不打印（想留备注就用它）。
+    """
+    name = cfg.get("checklist") or "start-checklist.md"
+    path = os.path.join(ROOT, name)
+    if os.path.isfile(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                lines = [l.rstrip("\n") for l in f]
+            # 去掉 `>` 说明行和纯空行
+            kept = [l for l in lines if not l.lstrip().startswith(">")]
+            text = "\n".join(kept).strip()
+            # 连续多个空行压成一个
+            while "\n\n\n" in text:
+                text = text.replace("\n\n\n", "\n\n")
+            return text, name
+        except Exception:
+            pass
+    return DEFAULT_CHECKLIST.strip(), "内置默认"
 
 
 def load_config():
@@ -196,15 +236,8 @@ def main():
 
     print("🔧 %s" % reason)
     print()
-    print("四问（每次必过，答不上来先别动手）：")
-    print("  ① 说明书在哪？    grep -l \"<关键词>\" DEVELOPING.md README.md")
-    print("  ② 功能做过没？    mem.py list | grep <关键词>")
-    print("  ③ 工具够不够？    看上面清单里有没有现成的")
-    print("  ④ 记忆怎么说？    memory_search \"<关键词>\"")
-    print()
-    print("五思（造工具类必上；删/移/批量/不可逆按硬条件；短操作可省）：")
-    print("  目的 / 方案 / 边界 / 验证 / 退路")
-    print("  ⚠ ④验证要写**实测数字**，不是「应该对得上」；新脚本自带 --selftest")
+    checklist, src = load_checklist(CFG)
+    print(checklist)
     print()
 
     if py_changes:
