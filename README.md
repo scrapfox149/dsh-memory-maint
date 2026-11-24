@@ -21,6 +21,8 @@
 
 ## 一眼看效果
 
+![mem_check 日常体检](docs/mem-check.png)
+
 `mem_check`（不传参数就是日常体检）：
 
 ```
