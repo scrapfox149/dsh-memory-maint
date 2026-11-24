@@ -22,7 +22,7 @@ dsh-memory-maint/
 │       └── rescue/   mem_backup   2 命令
 ├── py-core/mem_db.py         基础层：契约层（唯一读库入口）
 ├── state/                    日志（runtime.log / errors.jsonl，7 天过期）
-├── 	ests/test-mem-plugin.py        冒烟测试
+├── tests/test-mem-plugin.py        冒烟测试
 ├── docs/DEVELOPING.md             本文件
 └── README.md                 使用说明
 ```
@@ -269,30 +269,38 @@ profile 的 `package.json` 有两处登记：
 
 ### 改完代码必须同步
 
-```
-工作区 tools/dsh-memory-maint/          ← 开发源（在这里改）
-        ↓ python tools/sync-plugin.py
-profiles/desktop/node_modules/dsh-memory-maint/   ← 运行副本（宿主读这里）
-```
+### 同步到 profile（宿主读的那份）
 
-**不同步 = 宿主还跑旧代码**。这是正拷贝唯一的代价。
+插件装在 `~/.dsh/profiles/desktop/node_modules/dsh-memory-maint` ——
+**它是副本，不是链接**（pnpm 的 `file:` 协议），**改完工作区代码不会自动同步**。
 
-```bash
-python tools/sync-plugin.py            # 同步
-python tools/sync-plugin.py --check    # 只对比，不写
+```powershell
+# 改动少时手动同步（把 sources 换成实际路径）
+Copy-Item lib\index.js "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-memory-maint\lib\index.js" -Force
 ```
 
-**同步范围**：`lib/ modules/ py-core/ cordis.patch.yml package.json README.md docs/DEVELOPING.md 	ests/test-mem-plugin.py`
-**不同步**：`state/`（运行日志，两边各管各的）。
+**同步范围**：`lib/ modules/ py-core/ cordis.patch.yml package.json config.json
+start-checklist.md README.md CHANGELOG.md LICENSE docs/`
 
-**同步前会自动备份目标原内容** → `tmp/plugin-sync-backup/`。
+**不同步**：`tests/`（测试不进安装包）、`state/`（运行日志，两边各管各的）、`tmp/`
+
+**⚠ 生效差异（重要）**：
+- **Python 脚本**（`modules/` `py-core/`）—— **立即生效**（每次子进程重读）
+- **`lib/index.js`** —— **必须重启宿主**（Node 侧在模块加载时读一次）
 
 ### 上线/重装步骤
 
-1. `python tools/sync-plugin.py`（或首次 `cp -r`）
-2. 确认 profile `package.json` 两处都有
-3. **用户手动重启宿主**（`dshm_restart` 对 desktop 无效）
-4. 重启后验证 6 个工具：`mem_backup` / `mem_check` / `mem_maint` / `mem_query` / `mem_alert` / `mem_status`
+1. **同步到 profile**：按上面那段（手动 Copy-Item，或 `robocopy` 整个目录）
+2. **确认 profile 的 `package.json`**：`dependencies` 里是 `file:./node_modules/dsh-memory-maint`，
+   `dsh.profile.bundles` 里含它
+   - ⚠ **别手改 `bundles`**：`dshm` 会按插件的 `userDisabled` 状态重写，手加的条目会被悄悄移除
+   - 要启用/停用，用 `dshm_toggle(pkg, enabled: true/false)`（返回 `applied:live` 即热生效）
+3. **重启宿主**（`dshm_restart` 对 desktop 无效，只能人工重启）
+4. **重启后验证**：
+   - `mem_status`：6 个工具 / 35 个脚本 / 记忆库可读
+   - `mem_check daily`：4 行 + 「结论：」
+   - `mem_check start`：能读到清单
+5. **如果只有 Python 改动**（没动 `lib/`）→ **不用重启**，同步后立即生效
 
 ### 回滚
 
@@ -397,10 +405,14 @@ grep -rn "state\|STATE_DIR\|runtime.log\|errors.jsonl" lib/ py-core/ modules/
 
 ### 改了代码怎么生效
 
-```bash
-python tools/sync-plugin.py        # 工作区 → node_modules
+```powershell
+# 1) 同步到 profile（那边是副本，不是链接）
+robocopy tools\dsh-memory-maint "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-memory-maint" /E /XD .git __pycache__ state tmp /XF *.pyc
 ```
-**同步后不需要重启**（Python 脚本每次调用都是新进程）；**改了 `lib/index.js` 必须重启**。
+
+**生效差异**：
+- **Python 脚本** → **不用重启**（每次调用都是新子进程，重读文件）
+- **`lib/index.js`** → **必须重启宿主**（模块加载时读一次）
 
 ---
 
