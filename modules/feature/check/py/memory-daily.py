@@ -135,45 +135,40 @@ def main():
     if n_sig:
         ignore.append(("signal %d 条" % n_sig, "长文没命中信号词表，多数是语义重要但措辞不同"))
 
-    # ---- 输出 ----
-    print("=== 日常体检（%s）===" % os.path.basename(DB))
-    print()
+    # ---- 输出（2026-11-24 压缩：原来 7 段，现在 3-4 行）----
+    # 压缩原则：结论先说，能合并的合并，解释留给 --verbose。
+    # 原来每行都带「为什么不用管」，读完 3 行才看到结论——顺序反了。
+    cnt = count_status_sql()
+    total = sum(v["active"] for v in cnt.values())
+
+    if quiet:
+        for pri, title, action, detail in sorted(todo, key=lambda x: x[0]):
+            print("%s  %s" % (title, action))
+        return 0 if not todo else 1
+
+    print("=== 日常体检（%s）· %d 条 active ===" % (os.path.basename(DB), total))
 
     if todo:
         todo.sort(key=lambda x: x[0])
-        print("今天该做的（%d 件，按优先级）：" % len(todo))
+        print("⚠ %d 件事要做：" % len(todo))
         for pri, title, action, detail in todo:
-            print("  %s" % title)
-            print("     %s" % action)
+            print("  %s  %s" % (title, action))
             if verbose:
                 for l in detail.split("\n")[:10]:
                     if l.strip():
                         print("       " + l.strip()[:96])
-        print()
     else:
-        if not quiet:
-            print("今天该做的：没有 ✅")
-            print()
+        print("✅ 没事要做")
 
-    if ignore and not quiet:
-        print("不用管的：")
-        for title, why in ignore:
-            print("  · %s —— %s" % (title, why))
+    if ignore:
+        print("不用管的：%s" % " / ".join(t for t, _ in ignore))
+    if okay:
+        print("正常：%s" % " · ".join(okay))
+    if verbose:
         print()
-
-    if not quiet:
-        print("其他：%s" % " / ".join(okay) if okay else "其他：（无）")
-        print()
-
-    cnt = count_status_sql()
-    total = sum(v["active"] for v in cnt.values())
-    print("记忆库：%d 条 active" % total)
-    if not quiet:
-        print("（忘了动作名就跑 `mem_check help`，列出全部 31 个动作）")
-    if todo:
-        print("结论：⚠ %d 件事要做" % len(todo))
-    else:
-        print("结论：✅ 没事要做")
+        for t, why in ignore:
+            print("  · %s —— %s" % (t, why))
+        print("  （忘了动作名就跑 `mem_check help`）")
     return 0 if not todo else 1
 
 
