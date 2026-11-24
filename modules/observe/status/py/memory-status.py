@@ -166,7 +166,10 @@ def main():
         for b in m["bad"]:
             print("       ✗ %s" % b)
 
+    # 2026-11-24：DEVELOPING.md 移进 docs/ 了，两处都找
     dev_doc = os.path.join(ROOT, "DEVELOPING.md")
+    if not os.path.exists(dev_doc):
+        dev_doc = os.path.join(ROOT, "docs", "DEVELOPING.md")
     print("\n契约层: %s" % ("✅ py-core/mem_db.py" if all(core.values()) else "❌ 缺文件"))
     print("维护规范: %s" % ("✅ DEVELOPING.md" if os.path.exists(dev_doc) else "⚠ 缺 DEVELOPING.md（改插件前先看它）"))
     if db.get("error"):
