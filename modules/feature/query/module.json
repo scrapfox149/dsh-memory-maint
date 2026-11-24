@@ -6,6 +6,7 @@
     "hipporag": "py/memory-hipporag.py",
     "file": "py/memory-file-search.py",
     "dump": "py/memory-dump-active.py",
-    "people": "py/memory-people.py"
+    "people": "py/memory-people.py",
+    "why": "py/memory-why.py"
   }
 }
