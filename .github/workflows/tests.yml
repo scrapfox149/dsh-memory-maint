@@ -23,42 +23,12 @@ jobs:
 
       # ② 冒烟：每个脚本都能跑起来、不抛 Traceback
       #    用空库——CI 上没有真实记忆库，也不该有
+      #
+      #    注意：造库用**独立脚本**而不是内联块。
+      #    2026-11-24 第一版写在 `shell: python` 里，heredoc 处理方式和 bash 不同，
+      #    CI 上直接 failure；落成 test-make-db.py 后两边都能跑。
       - name: 造一个空库
-        shell: python
-        run: |
-          import sqlite3
-          from pathlib import Path
-
-          Path("tmp").mkdir(exist_ok=True)
-          db = Path("tmp/ci.db")
-          if db.exists():
-              db.unlink()
-
-          # 与真实库对齐：soul / user **没有 project 列**，
-          # 这正是 2026-11-18 那个「缺列导致整层静默跳过 34 条」的坑
-          BASE = [
-              ("id", "TEXT"), ("title", "TEXT"), ("content", "TEXT"),
-              ("importance", "INTEGER"), ("keywords", "TEXT"), ("status", "TEXT"),
-              ("source_session", "TEXT"), ("hit_count", "INTEGER"),
-              ("created_at", "INTEGER"), ("updated_at", "INTEGER"),
-              ("last_accessed_at", "INTEGER"),
-          ]
-          con = sqlite3.connect(db)
-          for tier in ("soul", "user", "rules", "project", "topic", "fact", "lesson"):
-              cols = list(BASE)
-              if tier not in ("soul", "user"):
-                  cols.append(("project", "TEXT"))
-              if tier == "project":
-                  cols.append(("subcategory", "TEXT"))
-              if tier == "topic":
-                  cols.append(("goal", "TEXT"))
-              if tier == "fact":
-                  cols.append(("editHistory_infoFrom", "TEXT"))
-              ddl = ', '.join(f'"{c}" {t}' for c, t in cols)
-              con.execute(f'CREATE TABLE "{tier}" ({ddl})')
-          con.commit()
-          con.close()
-          print("空库就绪:", db)
+        run: python test-make-db.py tmp/ci.db
 
       - name: 冒烟测试（空库）
         run: python test-mem-plugin.py --db tmp/ci.db
