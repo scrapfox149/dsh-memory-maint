@@ -67,10 +67,17 @@ def load_groups():
             gname = tool[4:] if tool.startswith("mem_") else (tool or mod.name)
             cmds = {}
             for k, v in (m.get("commands") or {}).items():
-                rel = v.get("script") if isinstance(v, dict) else v
+                if isinstance(v, dict):
+                    rel = v.get("script")
+                    preset = list(v.get("args") or [])
+                else:
+                    rel, preset = v, []
                 # module.json 里的路径是**相对模块目录**（py/xxx.py），
-                # 这里就地拼成完整路径——早期版本直接 HERE/rel 会全部"缺少脚本"
-                cmds[k] = str(mod / rel) if rel else None
+                # 这里就地拼成完整路径——早期版本直接 HERE/rel 会全部"缺少脚本"。
+                # 2026-11-24：**args 也要带上**！原来只取 script，导致 `mem.py clear`
+                # （module.json 里写着 args: ["--clear-errors", "--yes"]）变成了不带参数的
+                # `memory-alert.py`，只打印告警、根本没清。全量测试时才抓到。
+                cmds[k] = {"script": str(mod / rel) if rel else None, "args": preset}
             groups[gname] = {
                 "desc": str(m.get("description") or ""),
                 "cmds": cmds,
@@ -92,13 +99,20 @@ def find_command(groups, name):
     return None, [g for g, _ in hits]
 
 
-def run(script, extra=None):
+def run(spec, extra=None):
+    """跑一个命令。spec 可以是 {"script","args"} 或纯路径字符串。"""
+    if isinstance(spec, dict):
+        script, preset = spec.get("script"), list(spec.get("args") or [])
+    else:
+        script, preset = spec, []
     # script 现在已是完整路径（load_groups 里拼好的）
     path = Path(script) if script else None
     if path is None or not path.exists():
         print("  ✗ 缺少脚本: %s" % script)
         return 127
-    cmd = [PY, str(path)] + (extra or [])
+    # 2026-11-24：**module.json 里声明的 args 要带上前置**，再接调用方传的。
+    # 原来完全丢了 args，导致 `mem.py clear` 跑成了不带 --clear-errors 的 memory-alert.py。
+    cmd = [PY, str(path)] + preset + (extra or [])
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
         out = (r.stdout or "").strip()
@@ -124,7 +138,8 @@ def show_list(groups, as_json=False):
         _root = str(HERE.parent) + os.sep
         for g, info in groups.items():
             rel = {}
-            for k, v in info["cmds"].items():
+            for k, spec in info["cmds"].items():
+                v = spec.get("script") if isinstance(spec, dict) else spec
                 if not v:
                     continue
                 # 输出**相对插件根**的路径，不用绝对路径——`--json` 可能被别的工具/别人用，
@@ -132,7 +147,10 @@ def show_list(groups, as_json=False):
                 # 用字符串截断而不用 os.path.relpath：后者在 Windows 上对某些盘符组合会抛
                 # ValueError（不同驱动器无法相对化），静默落到 except 就变回绝对路径。
                 s = str(v)
-                rel[k] = s[len(_root):] if s.startswith(_root) else s
+                item = {"script": s[len(_root):] if s.startswith(_root) else s}
+                if isinstance(spec, dict) and spec.get("args"):
+                    item["args"] = list(spec["args"])
+                rel[k] = item
             out[g] = {
                 "desc": info["desc"],
                 "layer": info.get("layer", ""),
@@ -146,8 +164,12 @@ def show_list(groups, as_json=False):
     print("记忆维护统一入口\n")
     for g, info in groups.items():
         print("【%s】%s" % (g, info["desc"]))
-        for k, v in info["cmds"].items():
-            print("   mem.py %-6s %-10s → %s" % (g, k, v))
+        for k, spec in info["cmds"].items():
+            v = spec.get("script") if isinstance(spec, dict) else spec
+            extra = ""
+            if isinstance(spec, dict) and spec.get("args"):
+                extra = "  [args: %s]" % " ".join(spec["args"])
+            print("   mem.py %-6s %-10s → %s%s" % (g, k, v, extra))
         print()
     print("也可以直接用动作名：mem.py daily / mem.py refs / mem.py dedup")
     print()
@@ -178,8 +200,10 @@ def main():
             print("=" * 60)
             bad = 0
             for k in info["order"]:
-                print("\n----- %s (%s) -----" % (k, info["cmds"][k]))
-                if run(info["cmds"][k]) != 0:
+                spec = info["cmds"][k]
+                shown = spec.get("script") if isinstance(spec, dict) else spec
+                print("\n----- %s (%s) -----" % (k, shown))
+                if run(spec) != 0:
                     bad += 1
             print("\n" + "=" * 60)
             print("完成：%d 项，其中 %d 项返回非 0" % (len(info["order"]), bad))
