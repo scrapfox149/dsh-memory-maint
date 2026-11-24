@@ -1,0 +1,64 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest        # 脚本按 Windows 习惯写（路径分隔符、tasklist 等）
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # ① 纯函数数值（不碰库）
+      - name: 单元测试（decay / text）
+        run: python test-units.py
+
+      # ② 冒烟：每个脚本都能跑起来、不抛 Traceback
+      #    用空库——CI 上没有真实记忆库，也不该有
+      - name: 造一个空库
+        shell: python
+        run: |
+          import sqlite3
+          from pathlib import Path
+
+          Path("tmp").mkdir(exist_ok=True)
+          db = Path("tmp/ci.db")
+          if db.exists():
+              db.unlink()
+
+          # 与真实库对齐：soul / user **没有 project 列**，
+          # 这正是 2026-11-18 那个「缺列导致整层静默跳过 34 条」的坑
+          BASE = [
+              ("id", "TEXT"), ("title", "TEXT"), ("content", "TEXT"),
+              ("importance", "INTEGER"), ("keywords", "TEXT"), ("status", "TEXT"),
+              ("source_session", "TEXT"), ("hit_count", "INTEGER"),
+              ("created_at", "INTEGER"), ("updated_at", "INTEGER"),
+              ("last_accessed_at", "INTEGER"),
+          ]
+          con = sqlite3.connect(db)
+          for tier in ("soul", "user", "rules", "project", "topic", "fact", "lesson"):
+              cols = list(BASE)
+              if tier not in ("soul", "user"):
+                  cols.append(("project", "TEXT"))
+              if tier == "project":
+                  cols.append(("subcategory", "TEXT"))
+              if tier == "topic":
+                  cols.append(("goal", "TEXT"))
+              if tier == "fact":
+                  cols.append(("editHistory_infoFrom", "TEXT"))
+              ddl = ', '.join(f'"{c}" {t}' for c, t in cols)
+              con.execute(f'CREATE TABLE "{tier}" ({ddl})')
+          con.commit()
+          con.close()
+          print("空库就绪:", db)
+
+      - name: 冒烟测试（空库）
+        run: python test-mem-plugin.py --db tmp/ci.db
