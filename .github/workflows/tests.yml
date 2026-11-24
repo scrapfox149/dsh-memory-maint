@@ -10,6 +10,11 @@ on:
 jobs:
   test:
     runs-on: windows-latest        # 脚本按 Windows 习惯写（路径分隔符、tasklist 等）
+    env:
+      # CI 的 checkout 目录里既没有 .dsh-meow/ 也没有 AGENTS.md，
+      # 所以 paths.workspace_root() 会按设计报错（不猜路径）。
+      # 显式告诉它工作区在哪——这也顺便验证了环境变量这条路是通的。
+      DSH_MEMORY_WORKSPACE: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
 
