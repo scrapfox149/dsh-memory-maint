@@ -330,10 +330,70 @@ def main():
     finally:
         os.chmod(rofile, 0o666)
 
+    # ---- 14. 符号链接（junction，不需要管理员）----
+    print("\n--- 14. 符号链接（junction）---")
+    real_dir = os.path.join(tmpd, "real-lib")
+    os.makedirs(real_dir, exist_ok=True)
+    real_db = os.path.join(real_dir, "mem.db")
+    make_db(real_db)
+    insert(real_db, "fact", "link0001-aa", "通过符号链接访问的记忆")
+    link_dir = os.path.join(tmpd, "link-lib")
+    if os.path.exists(link_dir):
+        subprocess.run(["cmd", "/c", "rmdir", link_dir], capture_output=True)
+    mk = subprocess.run(["cmd", "/c", "mklink", "/J", link_dir, real_dir],
+                        capture_output=True, text=True, encoding="utf-8",
+                        errors="replace")
+    if mk.returncode == 0:
+        linked_db = os.path.join(link_dir, "mem.db")
+        check("junction 建成了", os.path.exists(linked_db), mk.stdout.strip()[:60])
+        rc, out = run(["daily"], db=linked_db)
+        check("通过 junction 路径读库不崩", "Traceback" not in out,
+              out.strip().split("\n")[-1][:60])
+        rc, out = run(["project"], db=linked_db)
+        check("通过 junction 路径跑 project 不崩", "Traceback" not in out,
+              out.strip().split("\n")[-1][:60])
+        subprocess.run(["cmd", "/c", "rmdir", link_dir], capture_output=True)
+    else:
+        check("junction 建成", False, (mk.stdout or mk.stderr)[:80])
+
+    # ---- 15. 写不进去（icacls 拒绝写，模拟磁盘满/只读挂载）----
+    print("\n--- 15. 目标写不进去（模拟磁盘满）---")
+    ro_dir = os.path.join(tmpd, "no-write")
+    os.makedirs(ro_dir, exist_ok=True)
+    user = os.environ.get("USERNAME", "")
+    deny = subprocess.run(["icacls", ro_dir, "/deny", "%s:(W)" % user],
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if deny.returncode == 0:
+        target = os.path.join(ro_dir, "out.db")
+        # 用 backup export 写一个文件进去试（它是最简单的写操作）
+        rc, out = run(["backup"], db=real_db, timeout=120)
+        # 直接调 export 脚本写到只读目录
+        exp = os.path.join(ROOT, "modules", "backup", "rescue", "py", "memory-export.py")
+        env = dict(os.environ)
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONPATH"] = os.path.join(ROOT, "py-core")
+        env["DSH_MEMORY_WORKSPACE"] = ro_dir
+        try:
+            r = subprocess.run([PY, exp], capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", timeout=120, env=env)
+            combined = (r.stdout or "") + (r.stderr or "")
+            wrote_ok = r.returncode == 0 and os.path.exists(os.path.join(ro_dir, "memory-export")) is False
+            # 关键：**不能静默成功**——写不进去要么报错，要么明确说明写到了别处
+            check("写不进去时不是静默成功", r.returncode != 0 or "Permission" in combined
+                  or "拒绝" in combined or "denied" in combined.lower(),
+                  "rc=%d %s" % (r.returncode, combined.strip().split("\n")[-1][:60]))
+        except Exception as e:
+            check("写不进去时不是静默成功", False, str(e)[:60])
+        finally:
+            subprocess.run(["icacls", ro_dir, "/remove:d", user],
+                           capture_output=True, text=True)
+    else:
+        check("icacls 设拒绝写", False, (deny.stderr or deny.stdout)[:80])
+
     # ---- 不适用（记一笔，不算失败）----
     print("\n--- 不适用本机环境 ---")
-    print("  SKIP 符号链接库：Windows 造符号链接需要管理员，跳过")
-    print("  SKIP 磁盘满：无法安全制造，改用「只读文件」覆盖同类场景")
+    print("  SKIP 真正的磁盘满：要 VHD/diskpart，本会话不是管理员、也没有 Hyper-V 模块")
+    print("        （已用「icacls 拒绝写」覆盖同类：写不进去时的行为）")
 
     # ---- 汇总 ----
     total = len(passed) + len(failed)
