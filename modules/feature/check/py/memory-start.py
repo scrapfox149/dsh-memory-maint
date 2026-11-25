@@ -304,6 +304,34 @@ def main():
     print("=== 开工前 ===")
     print()
 
+    # 2026-11-24：**看见了也要主动提**（用户原话：「看见了也要主动提，告诉用户这些可配置，功能可以关闭」）。
+    # 但用户又说「**这个文件应该是只主动强提醒一次，后面都作为说明文件存在**」——
+    # 所以：第一次（state/config-told 不存在）强提醒一次；之后完全不提（help / CONFIG.md 还在）。
+    if is_first_time_config_tip():
+        print()
+        print("=== 可配置（这是第一次提醒，之后不再主动提）===")
+        print()
+        print("这个插件有七段配置，**不用改代码**（改完即时生效，不用重启）：")
+        print("  agent.name       AI 的名字          默认 DeepSeek")
+        print("  tools.<工具名>   工具开关           false = 关掉（1 秒内生效）")
+        print("  assets.<项目>    项目资产扫哪些目录   没配就只列记忆")
+        print("  backup.targets   备份放哪几处        ⚠ 见下，默认关")
+        print("  backup.exportDir 导出去向           默认 workspace/memory-export")
+        print("  start.checklist  开工清单           可换成用户自己的规则")
+        print("  paths.*          本机设施路径         没配就跳过")
+        print()
+        print("⚠ **备份默认是关的**（tools.mem_backup = false）")
+        print("  mem_backup 用来导出/恢复记忆，但**备份到哪只有你自己知道**，")
+        print("  所以默认不注册它——不配的话它跑起来什么也不做，反而像坏了。")
+        print("  要开：config.json 里 tools.mem_backup = true，并配好 backup.targets")
+        print("        （建议两处、不同物理盘）。")
+        print("  **要现在设置吗？** 让 AI 带你看 CONFIG.md 的 backup 段，或直接说路径。")
+        print()
+        print("  用户问「能不能改 / 能不能关」→ 照上面答；细节看 CONFIG.md。")
+        print("  随时能重看：mem_check help（有「可以改的」一节）")
+        mark_config_tipped()
+
+
     # 2026-11-25：项目资产（只列配了目录的项目；明细走 mem.py assets <项目>）
     if CFG.get("showAssets", True):
         _assets = assets_summary()
@@ -361,32 +389,6 @@ def main():
     if head:
         print("最近提交：%s" % head)
 
-    # 2026-11-24：**看见了也要主动提**（用户原话：「看见了也要主动提，告诉用户这些可配置，功能可以关闭」）。
-    # 但用户又说「**这个文件应该是只主动强提醒一次，后面都作为说明文件存在**」——
-    # 所以：第一次（state/config-told 不存在）强提醒一次；之后完全不提（help / CONFIG.md 还在）。
-    if is_first_time_config_tip():
-        print()
-        print("=== 可配置（这是第一次提醒，之后不再主动提）===")
-        print()
-        print("这个插件有七段配置，**不用改代码**（改完即时生效，不用重启）：")
-        print("  agent.name       AI 的名字          默认 DeepSeek")
-        print("  tools.<工具名>   工具开关           false = 关掉（1 秒内生效）")
-        print("  assets.<项目>    项目资产扫哪些目录   没配就只列记忆")
-        print("  backup.targets   备份放哪几处        ⚠ 见下，默认关")
-        print("  backup.exportDir 导出去向           默认 workspace/memory-export")
-        print("  start.checklist  开工清单           可换成用户自己的规则")
-        print("  paths.*          本机设施路径         没配就跳过")
-        print()
-        print("⚠ **备份默认是关的**（tools.mem_backup = false）")
-        print("  mem_backup 用来导出/恢复记忆，但**备份到哪只有你自己知道**，")
-        print("  所以默认不注册它——不配的话它跑起来什么也不做，反而像坏了。")
-        print("  要开：config.json 里 tools.mem_backup = true，并配好 backup.targets")
-        print("        （建议两处、不同物理盘）。")
-        print("  **要现在设置吗？** 让 AI 带你看 CONFIG.md 的 backup 段，或直接说路径。")
-        print()
-        print("  用户问「能不能改 / 能不能关」→ 照上面答；细节看 CONFIG.md。")
-        print("  随时能重看：mem_check help（有「可以改的」一节）")
-        mark_config_tipped()
     return 0
 
 
