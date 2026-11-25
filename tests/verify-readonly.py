@@ -29,7 +29,8 @@ if sys.stdout is not None:
         pass
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WS = r"C:\Users\24172\Documents\deepseek-harness\default-workspace"
+# 2026-11-25：环境变量优先（CI 上没有这个硬编码路径）
+WS = os.environ.get("DSH_MEMORY_WORKSPACE") or r"C:\Users\24172\Documents\deepseek-harness\default-workspace"
 PY = sys.executable
 
 # 会写库的（设计如此，不参与"只读"验证）
@@ -53,6 +54,12 @@ def main():
     os.makedirs(dsh_meow)
     src = os.path.join(WS, ".dsh-meow", "memory.db")
     dst = os.path.join(dsh_meow, "memory.db")
+
+    # CI 的 checkout 里没有 memory.db（也不该有）→ 跳过，不算失败
+    if not os.path.exists(src):
+        print("SKIP：没有 memory.db（CI 环境），跳过")
+        print("结论：⏭ 跳过（无库）")
+        return 0
 
     # 用 sqlite backup API 复制（正确处理 WAL），再 VACUUM 掉 WAL 影响
     con = sqlite3.connect(src)

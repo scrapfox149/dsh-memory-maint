@@ -46,6 +46,18 @@ jobs:
       - name: 工具开关即时生效
         run: node tests/switch-test.mjs
 
+      # ⑥ 只读性：36 个动作跑完，库 sha256 不变（证明不碰用户数据）
+      - name: 只读性验证
+        run: python tests/verify-readonly.py
+
+      # ⑦ 数字正确性：输出里的数字 vs 直接查库
+      - name: 数字正确性
+        run: python tests/verify-numbers.py
+
+      # ⑧ 设计一致性：行为是否符合设计意图
+      - name: 设计一致性
+        run: python tests/verify-design.py
+
       # ⑥ 全量：15 组极端场景（42 断言）——包含 10 万条、损坏库、并发、只读等
       #    慢（几分钟），但这是「发版前必跑」的那一个，CI 上也不能省
       - name: 全量测试（极端场景）
