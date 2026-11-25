@@ -152,9 +152,25 @@ def run(query, top=8):
 
 
 if __name__ == "__main__":
-    q = sys.argv[1] if len(sys.argv) > 1 else "备份体系"
+    # 2026-11-25 #12：--json 给程序/agent 用（只出数据，不打印格式文本）
+    _args = [a for a in sys.argv[1:] if a != "--json"]
+    _want_json = "--json" in sys.argv[1:]
+    q = _args[0] if _args else "备份体系"
+    _hits = run(q, top=8)
+
+    if _want_json:
+        print(json.dumps({
+            "query": q,
+            "items": [{"id": it["id"], "tier": it["tier"], "importance": it["imp"],
+                       "final": round(float(f), 4), "ppr": round(float(r), 4),
+                       "decay": round(float(d), 4),
+                       "content": it["content"], "keywords": it.get("kw", "")}
+                      for f, r, d, it in _hits],
+        }, ensure_ascii=False, indent=1))
+        sys.exit(0)
+
     print("查询:", q)
     print()
-    for final, raw, d, it in run(q, top=8):
+    for final, raw, d, it in _hits:
         print("%.4f (ppr %.3f, decay %.2f) [%s·w%d] %s" % (
             final, raw, d, it["tier"], it["imp"], (it["content"] or "")[:66].replace("\n", " ")))

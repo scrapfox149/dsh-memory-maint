@@ -17,6 +17,7 @@
     python mem.py why "记忆 插件 改进"
     python mem.py query why "备份 恢复"          # 等价
 """
+import json
 import os
 import sys
 
@@ -58,8 +59,10 @@ def keywords_of(row):
 
 
 def main():
-    args = [a for a in sys.argv[1:] if a != "--full"]
+    # 2026-11-25 #12：--json 给程序/agent 用（只出数据，不打印格式文本）
+    args = [a for a in sys.argv[1:] if a not in ("--full", "--json")]
     full = "--full" in sys.argv[1:]
+    want_json = "--json" in sys.argv[1:]
     if not args:
         print("用法：mem.py why \"<查询>\" [--full]")
         print()
@@ -122,12 +125,29 @@ def main():
                     rows.append((len(hit), tier, r, hit, "正文"))
 
     if not rows:
+        if want_json:
+            print(json.dumps({"query": query, "tokens": sorted(q_all),
+                              "total": 0, "items": []}, ensure_ascii=False, indent=1))
+            return 0
         print("没有记忆的关键词与这个查询有词面重叠。")
         print("（这不代表 memory_search 也搜不到——它走 BM25，还会吃正文内容）")
         return 0
 
     rows.sort(key=lambda x: -x[0])
     total = len(rows)
+
+    if want_json:
+        print(json.dumps({
+            "query": query,
+            "tokens": sorted(q_all),
+            "scanned_body": bool(full or scanned),
+            "total": total,
+            "items": [{"tier": tier, "id": str(r.get("id") or ""),
+                        "hits": hit, "where": src, "n": n,
+                        "content": r.get("content") or ""}
+                       for n, tier, r, hit, src in rows],
+        }, ensure_ascii=False, indent=1))
+        return 0
 
     print("=== 为什么会被命中（词面重叠，不是 BM25 分数）===")
     print("查询：%s" % query)

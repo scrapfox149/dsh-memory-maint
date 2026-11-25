@@ -97,9 +97,24 @@ def expand(seed_text, top=8, min_decay=0.02):
 
 
 if __name__ == "__main__":
-    q = sys.argv[1] if len(sys.argv) > 1 else "备份体系"
+    # 2026-11-25 #12：--json 给程序/agent 用（只出数据，不打印格式文本）
+    _args = [a for a in sys.argv[1:] if a != "--json"]
+    _want_json = "--json" in sys.argv[1:]
+    q = _args[0] if _args else "备份体系"
+    _hits = expand(q, top=8)
+
+    if _want_json:
+        print(json.dumps({
+            "seed": q,
+            "items": [{"id": it["id"], "tier": it["tier"],
+                       "score": round(float(s), 4), "decay": round(float(d), 4),
+                       "content": it["content"], "keywords": it["kw"]}
+                      for s, d, it in _hits],
+        }, ensure_ascii=False, indent=1))
+        sys.exit(0)
+
     print("入口：", q)
     print()
-    for score, d, it in expand(q, top=8):
+    for score, d, it in _hits:
         print("%.3f (decay %.2f) [%s] %s" % (score, d, it["tier"], it["id"][:12]))
         print("   ", it["content"][:90].replace("\n", " "))
