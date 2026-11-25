@@ -113,6 +113,20 @@ def load_config():
 CFG = load_config()
 
 
+def _workspace():
+    """工作区根（用于判断"这里有没有在改东西"）。
+
+    2026-11-25：原来 git 命令用的是 cwd=ROOT（**插件根**），
+    但注释写的是"工作区"——插件根在工作区里时，看到的是整个仓库的改动；
+    插件装在 profile（不是 git 仓库）时，git 直接报错。**两种情况下"轻路"都触发不到。**
+    """
+    try:
+        from paths import workspace_root
+        return workspace_root()
+    except Exception:
+        return ROOT
+
+
 def git_changes():
     """看工作区里有没有未提交改动，按类型分开数。
 
@@ -121,7 +135,7 @@ def git_changes():
     工作区里有没有真在被改的脚本 / 文档。
     """
     try:
-        r = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
+        r = subprocess.run(["git", "status", "--porcelain"], cwd=_workspace(),
                            capture_output=True, text=True, encoding="utf-8",
                            errors="replace", timeout=CFG["timeoutSeconds"])
         lines = [l for l in (r.stdout or "").splitlines() if l.strip()]
@@ -134,7 +148,7 @@ def git_changes():
 
 def git_head():
     try:
-        r = subprocess.run(["git", "log", "--oneline", "-1"], cwd=ROOT,
+        r = subprocess.run(["git", "log", "--oneline", "-1"], cwd=_workspace(),
                            capture_output=True, text=True, encoding="utf-8",
                            errors="replace", timeout=10)
         return (r.stdout or "").strip()[:60]
