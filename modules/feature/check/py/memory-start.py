@@ -138,6 +138,11 @@ def git_changes():
         r = subprocess.run(["git", "status", "--porcelain"], cwd=_workspace(),
                            capture_output=True, text=True, encoding="utf-8",
                            errors="replace", timeout=CFG["timeoutSeconds"])
+        # 2026-11-25 修：退出码非 0 说明**读不到**（不在 git 仓库里），不是"没有改动"。
+        # 之前只捕异常，git 存在但不在仓库里时 stdout 为空 → 被当成没改动 → 错走轻路。
+        # 设计是"读不到就保守当重"，所以这里必须返回 None。
+        if r.returncode != 0:
+            return None, None
         lines = [l for l in (r.stdout or "").splitlines() if l.strip()]
     except Exception:
         return None, None
@@ -151,6 +156,8 @@ def git_head():
         r = subprocess.run(["git", "log", "--oneline", "-1"], cwd=_workspace(),
                            capture_output=True, text=True, encoding="utf-8",
                            errors="replace", timeout=10)
+        if r.returncode != 0:
+            return ""
         return (r.stdout or "").strip()[:60]
     except Exception:
         return ""
