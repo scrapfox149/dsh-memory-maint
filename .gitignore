@@ -23,3 +23,6 @@ errors.jsonl
 
 # npm pack 的交付包（放成果目录，不进仓库）
 *.tgz
+
+# 测试报告是内部看的，不进仓库
+docs/test-report-*.md
