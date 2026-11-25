@@ -68,14 +68,13 @@ if "--json" in sys.argv:
     def pack(items):
         return [{"id": iid, "tier": t, "importance": imp, "content": c}
                 for imp, t, c, iid in items]
+    # 2026-11-25：counts 原来写死了 4 个组名，和 groups 的实际 key 对不上
+    # （groups 里是「离瞳（说话人）」，counts 里写的是「离瞳直接」）→ 差 1。
+    # 改成**按 groups 的实际 key 生成**，再加一个「未标来源」。
+    counts = {k: len(v) for k, v in groups.items()}
+    counts["未标来源"] = len(untagged)
     print(json.dumps({
-        "counts": {
-            "用户": len(groups.get("用户（菜包狐）", [])),
-            "离瞳转达": len(groups.get("离瞳（转达）", [])),
-            "大肥鱼": len(groups.get("大肥鱼（说话人）", [])),
-            "离瞳直接": len(groups.get("离瞳（直接）", [])),
-            "未标": len(untagged),
-        },
+        "counts": counts,
         "groups": {k: pack(v) for k, v in groups.items()},
         "untagged": pack(untagged),
     }, ensure_ascii=False, indent=1))

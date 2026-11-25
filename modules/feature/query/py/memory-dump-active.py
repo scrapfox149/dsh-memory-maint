@@ -49,6 +49,8 @@ if "--json" in sys.argv:
                      ensure_ascii=False, indent=1))
     sys.exit(0)
 
+# 2026-11-25：新装环境下 workspace/tmp/ 可能不存在 → 先建目录，否则 FileNotFoundError
+os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8") as f:
     f.write("\n".join(lines))
 print("active 条数:", count)
