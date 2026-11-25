@@ -16,6 +16,7 @@
     python mem.py project 盾构激光靶
     python mem.py project dsh --recent 10
 """
+import json
 import os
 import sys
 
@@ -50,7 +51,7 @@ def projects_of(row):
 def main():
     args = [a for a in sys.argv[1:]]
     if not args:
-        print("用法：mem.py project <项目名> [--recent N]")
+        print("用法：mem.py project <项目名> [--recent N] [--decisions|--quotes|--todo] [--json]")
         print()
         # 列出所有项目名，方便直接复制
         names = {}
@@ -66,6 +67,18 @@ def main():
                 print("  %-20s %d 条" % (p, n))
         return 0
 
+    # 2026-11-25 #12/#13：--json 给程序看；--decisions/--quotes/--todo 按子类过滤（可组合）
+    want_json = "--json" in args
+    if want_json:
+        args = [a for a in args if a != "--json"]
+    SUBCATS = {"--decisions": "decisions", "--quotes": "quotes", "--todo": "todo"}
+    picked = []
+    for flag, name in SUBCATS.items():
+        while flag in args:
+            args.remove(flag)
+            if name not in picked:
+                picked.append(name)
+
     recent_n = 5
     if "--recent" in args:
         i = args.index("--recent")
@@ -75,6 +88,10 @@ def main():
         except Exception:
             print("--recent 需要一个数字")
             return 1
+
+    if not args:
+        print("用法：mem.py project <项目名> [--recent N] [--decisions|--quotes|--todo] [--json]")
+        return 1
 
     want = args[0]
     rows = []
@@ -86,9 +103,33 @@ def main():
                 rows.append((tier, r))
 
     if not rows:
+        if want_json:
+            print(json.dumps({"project": want, "total": 0, "subcategories": picked,
+                              "items": []}, ensure_ascii=False, indent=1))
+            return 0
         print("项目「%s」下没有 active 条目。" % want)
         print("（跑 `mem.py project` 不带参数，看现有项目名）")
         return 1
+
+    # 2026-11-25 #13：按子类过滤（只对 project 层的 subcategory 有意义）
+    if picked:
+        rows = [(t, r) for t, r in rows
+                if t == "project" and (r.get("subcategory") or "") in picked]
+
+    # 2026-11-25 #12：--json 输出结构化数据（给程序/agent 用，不用解析文本）
+    if want_json:
+        items = [{
+            "id": r.get("id"),
+            "tier": t,
+            "subcategory": r.get("subcategory") or "",
+            "project": r.get("project") or "",
+            "content": r.get("content") or "",
+            "updated_at": r.get("updated_at") or r.get("created_at"),
+        } for t, r in rows]
+        print(json.dumps({"project": want, "total": len(items),
+                          "subcategories": picked, "items": items},
+                         ensure_ascii=False, indent=1))
+        return 0
 
     print("=== 项目：%s ===" % want)
     print()
@@ -102,6 +143,22 @@ def main():
              for t, n in sorted(by_tier.items(), key=lambda x: -x[1])]
     print("分布：" + " / ".join(parts))
     print()
+
+    # #13：带子类过滤时，只列那几类的**完整内容**，然后收尾
+    if picked:
+        SUBCAT_CN = {"decisions": "决策", "quotes": "原话", "todo": "待办"}
+        for cat in picked:
+            sub = [(t, r) for t, r in rows if (r.get("subcategory") or "") == cat]
+            print("--- %s（%d 条）---" % (SUBCAT_CN.get(cat, cat), len(sub)))
+            if not sub:
+                print("  （没有）")
+            for _t, r in sub:
+                for line in (r.get("content") or "").split("\n"):
+                    print("  " + line)
+            print()
+        print("结论：%s 的 %s 共 %d 条" % (
+            want, "/".join(SUBCAT_CN.get(c, c) for c in picked), len(rows)))
+        return 0
 
     # 最近更新
     def ts(tier_r):

@@ -7,6 +7,7 @@
 - `[大肥鱼说]` 开头 → 大肥鱼（说话人）
 - 无标记 → 归到「未标来源」，提示补标
 """
+import json
 import os
 import re
 
@@ -61,6 +62,25 @@ for iid, content, imp, t in rows:
         groups.setdefault(who, []).append((imp, t, content, iid))
     elif re.search(r"离瞳|大肥鱼|年轻人", content):
         untagged.append((imp, t, content, iid))
+
+# 2026-11-25 #12：--json 给程序/agent 用——只出数据，不写 docs/people.md
+if "--json" in sys.argv:
+    def pack(items):
+        return [{"id": iid, "tier": t, "importance": imp, "content": c}
+                for imp, t, c, iid in items]
+    print(json.dumps({
+        "counts": {
+            "用户": len(groups.get("用户（菜包狐）", [])),
+            "离瞳转达": len(groups.get("离瞳（转达）", [])),
+            "大肥鱼": len(groups.get("大肥鱼（说话人）", [])),
+            "离瞳直接": len(groups.get("离瞳（直接）", [])),
+            "未标": len(untagged),
+        },
+        "groups": {k: pack(v) for k, v in groups.items()},
+        "untagged": pack(untagged),
+    }, ensure_ascii=False, indent=1))
+    sys.exit(0)
+
 
 lines = ["# 人物索引（按来源标记归属）", "",
          "> 归属看 content 开头的标记，不看文中提到谁。", ""]

@@ -25,16 +25,30 @@ TIERS = ["soul", "user", "rules", "project", "topic", "fact", "lesson"]
 
 lines = []
 count = 0
+data = {}          # 2026-11-25 #12：--json 用
 for t in TIERS:
     # 契约层负责探列 + 缺列补 None + 坏库上报
     rows = fetch(t, ["id", "content", "keywords", "importance", "project", "subcategory"],
                  status="active")
+    data[t] = rows
     lines.append("\n########## %s（%d 条）##########" % (t, len(rows)))
     for i, (iid, content, kws, imp, proj, sub) in enumerate(rows, 1):
         count += 1
         lines.append("\n[%s-%02d] w%s proj=%s%s" % (t[:4], i, imp, proj or "空", (" sub=" + sub) if sub else ""))
         lines.append("内容: " + (content or "").replace("\n", " "))
         lines.append("关键词: " + (kws or ""))
+
+# 2026-11-25 #12：--json 只出数据，不写 tmp/active-full.txt
+if "--json" in sys.argv:
+    def pack(rows):
+        return [{"id": iid, "content": content, "keywords": kws, "importance": imp,
+                 "project": proj, "subcategory": sub}
+                for iid, content, kws, imp, proj, sub in rows]
+    print(json.dumps({"total": count,
+                      "tiers": {t: pack(rows) for t, rows in data.items()}},
+                     ensure_ascii=False, indent=1))
+    sys.exit(0)
+
 with open(OUT, "w", encoding="utf-8") as f:
     f.write("\n".join(lines))
 print("active 条数:", count)

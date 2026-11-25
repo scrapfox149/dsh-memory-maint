@@ -153,6 +153,52 @@ def main():
     check("help 含「可以改的」", "可以改的" in r.stdout)
     check("help 含 CONFIG.md 指引", "CONFIG.md" in r.stdout)
 
+    # ── ⑥ project 的子类过滤（#13）与 --json（#12）──────────────
+    print("\n【⑥ project --decisions / --quotes / --json】")
+    if not HAS_DB:
+        skip("project 子类过滤", "CI 无 memory.db")
+        skip("project --json", "CI 无 memory.db")
+    else:
+        r = run(["project", "dsh", "--decisions"])
+        check("--decisions 有「--- 决策」段", "--- 决策（" in r.stdout)
+
+        r = run(["project", "dsh", "--quotes"])
+        check("--quotes 不崩（空子类有提示）", "原话（" in r.stdout)
+
+        r = run(["project", "dsh", "--json"])
+        try:
+            d = json.loads(r.stdout)
+            ok = isinstance(d, dict) and d.get("project") == "dsh" and d.get("total", 0) > 0 \
+                and isinstance(d.get("items"), list) and len(d["items"]) == d["total"]
+            check("--json 可解析且 items==total", ok,
+                  "total=%s items=%s" % (d.get("total"), len(d.get("items", []))))
+        except Exception as e:
+            check("--json 可解析且 items==total", False, str(e)[:60])
+
+        r = run(["project", "dsh", "--json", "--todo"])
+        try:
+            d = json.loads(r.stdout)
+            check("--json --todo 组合只出 todo",
+                  d.get("subcategories") == ["todo"] and
+                  all(i.get("subcategory") == "todo" for i in d.get("items", [])),
+                  "subcategories=%s" % d.get("subcategories"))
+        except Exception as e:
+            check("--json --todo 组合只出 todo", False, str(e)[:60])
+
+    # ── ⑦ people / dump 的 --json（#12）──────────────────────────
+    print("\n【⑦ people --json / dump --json】")
+    if not HAS_DB:
+        skip("people --json", "CI 无 memory.db")
+        skip("dump --json", "CI 无 memory.db")
+    else:
+        for cmd, key in (("people", "counts"), ("dump", "tiers")):
+            r = run([cmd, "--json"])
+            try:
+                d = json.loads(r.stdout)
+                check("%s --json 可解析（含 %s）" % (cmd, key), key in d)
+            except Exception as e:
+                check("%s --json 可解析（含 %s）" % (cmd, key), False, str(e)[:60])
+
     # ── 汇总 ────────────────────────────────────────────────────
     total = len(passed) + len(failed)
     print("\n" + "=" * 60)
