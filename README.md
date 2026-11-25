@@ -126,7 +126,7 @@ mem.py diag --out diag.txt
 | 方式 | 适合 |
 |---|---|
 | **[提 Issue](https://github.com/scrapfox149/dsh-memory-maint/issues/new/choose)** | 行为不对、报错、跟文档不符——**模板会提示你贴 `diag`** |
-| **邮件 `REDACTED`** | 不方便公开的（涉及你自己的数据） |
+| **邮件 `scrapfox149@foxmail.com`** | 不方便公开的（涉及你自己的数据） |
 | **QQ `REDACTED`** | 同上 |
 
 提 Issue 时**把 `diag.txt` 拖进去当附件**就行，不用手工整理。
