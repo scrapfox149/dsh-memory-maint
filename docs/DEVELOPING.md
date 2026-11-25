@@ -447,6 +447,56 @@ python tools/dsh-memory-maint/modules/observe/status/py/memory-status.py
 
 **文档过时比没有文档更危险**——没有文档会去查代码，过时的文档会让人按错的来。
 
+## 发版流程（2026-11-25 定，栽过两次）
+
+**用户原话**：「放在那提醒你以后发版应该是**做完所有确认，测试之后再决定**，而不是**顺手就做掉**」。
+
+### 五步，缺一步都不叫"可以发"
+
+**① 测四层**
+```powershell
+cd tests
+python test-mem-plugin.py      # 冒烟（能跑）
+python test-units.py           # 单元
+python test-newfeat.py         # 新功能边界
+python test-full.py            # 全量极端场景
+node switch-test.mjs           # 工具开关
+# 以下三个在插件根跑：
+python tests/verify-readonly.py   # 不碰用户数据（sha256 不变）
+python tests/verify-numbers.py    # 算得对（输出数字 vs 查库）
+python tests/verify-design.py     # 像设计（行为符合设计意图）
+```
+
+**② 测升级链**（这条最容易漏，也最致命）
+```
+装旧版 → 改配置（agent.name / backup.targets）→ 升新版 → 配置还在吗？
+```
+**2026-11-25 的 0.4.0 就是漏了这步**：`config.json` 在包里，升级把它覆盖了。
+
+**③ 验安装后行为**
+干净环境装包，验 14 条：工具数（`mem_backup` 默认关 → 5 个）、没有 `config.json`、有 `config.example.json`、`status` / `assets` / `--json` / `start` / `daily` 各命令正常。
+
+**④ 打包验包**
+```powershell
+node <dsН>/node/bin/node.exe <dsН>/pnpm/bin/pnpm.cjs pack
+tar -tzf dsh-memory-maint-X.Y.Z.tgz | ...
+```
+必须：**无 `__pycache__` / 无 `tests/` / 无 `config.json` / 有 `config.example.json`**。
+
+**⑤ 问用户「发吗」**
+
+**这一步不能省，也不能用"我修完了"代替。**
+
+### 判据
+**「我这是'改完了'，还是'可以发了'？」** —— 前者只是第一步，中间隔着上面五步 + 一次用户点头。
+
+### 为什么这条老是违反
+发版流程太熟（bump → pack → tag → Release，一条脚本跑完）→ **顺手就做了**。
+**熟 → 快 → 跳过判断**。对策：**发版脚本开头先打印"已问过用户吗？"**，别靠记性。
+
+---
+
+
 ---
 
 ## 十四、测试三条硬标准（用户 2026-11-19 定）
