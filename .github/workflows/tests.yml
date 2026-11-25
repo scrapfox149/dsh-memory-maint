@@ -42,6 +42,10 @@ jobs:
       - name: 新功能边界
         run: python tests/test-newfeat.py
 
+      # ⑥ 工具开关即时生效（2026-11-25 #16）：改 config.json 不重启就摘/挂工具
+      - name: 工具开关即时生效
+        run: node tests/switch-test.mjs
+
       # ⑥ 全量：15 组极端场景（42 断言）——包含 10 万条、损坏库、并发、只读等
       #    慢（几分钟），但这是「发版前必跑」的那一个，CI 上也不能省
       - name: 全量测试（极端场景）

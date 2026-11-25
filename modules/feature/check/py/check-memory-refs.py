@@ -27,7 +27,12 @@ from mem_db import load  # noqa: E402
 WS = workspace_root()
 
 # 匹配 tools/xxx.py、docs/xxx.md、art/xxx、scripts/xxx
-PATH_RE = re.compile(r"(tools|docs|art|scripts)[/\\]([A-Za-z0-9_\-\u4e00-\u9fa5.]+)")
+# 2026-11-25：左边加负向后视——`tools/dsh-memory-maint/docs/CONFIG.md` 这种
+# 「插件内部的 docs/」不该被当成工作区的 `docs/CONFIG.md`。
+# 判据：这 4 个词前面必须是「行首 / 空白 / 反引号 / 括号 / 冒号」，不能是路径字符。
+PATH_RE = re.compile(
+    r"(?<![A-Za-z0-9_\-./\\])"
+    r"(tools|docs|art|scripts)[/\\]([A-Za-z0-9_\-\u4e00-\u9fa5.]+)")
 
 refs = {}
 # 2026-11-19 改：只查 active —— archived 条目不参与检索了，
