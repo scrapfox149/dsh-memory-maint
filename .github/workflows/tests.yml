@@ -46,6 +46,10 @@ jobs:
       - name: 工具开关即时生效
         run: node tests/switch-test.mjs
 
+      # ⑥-b 组合：参数叠加 / 连续跑 / 并发
+      - name: 组合测试
+        run: python tests/verify-combos.py
+
       # ⑥ 只读性：36 个动作跑完，库 sha256 不变（证明不碰用户数据）
       - name: 只读性验证
         run: python tests/verify-readonly.py

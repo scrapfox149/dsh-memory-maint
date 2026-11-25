@@ -33,9 +33,16 @@ K1 = 1.2
 B = 0.7
 
 
-def load_docs():
+def load_docs(quiet=False):
     out = []
-    for name in sorted(os.listdir(EXPORT)):
+    # 2026-11-25：新装环境**没有** memory-export/（那是 backup 导出才生成的），
+    # 原来直接 os.listdir 就崩（FileNotFoundError）。目录不在 = 没有导出副本，跳过即可。
+    # quiet=True 给 --json 用：JSON 模式下 stdout 里不能混进任何非 JSON 文本。
+    if not os.path.isdir(EXPORT) and not quiet:
+        print("（还没有 memory-export/ 导出副本——跑一次 `mem_backup export` 就有了；"
+              "现在只搜 docs/ 下的文档）")
+        print()
+    for name in sorted(os.listdir(EXPORT)) if os.path.isdir(EXPORT) else []:
         if not name.endswith(".md") or name == "README.md":
             continue
         text = open(os.path.join(EXPORT, name), encoding="utf-8").read()
