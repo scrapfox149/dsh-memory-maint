@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📧 邮件联系
+    url: mailto:REDACTED
+    about: 不方便公开说的（比如涉及你自己的数据），直接发邮件
+  - name: 💬 QQ
+    url: https://wpa.qq.com/msgrd?v=3&uin=REDACTED&site=qq&menu=yes
+    about: QQ 同号 REDACTED
