@@ -16,13 +16,8 @@
   让 AI 知道"有这些可配置项"，从而**主动告诉用户**。
   *用户原话：「写一个第一次安装插件会弹出的说明界面，来让安装了插件的AI看见，让它告诉用户有这些可配置」*
 
-- [ ] **[#16](https://github.com/scrapfox149/dsh-memory-maint/issues/16)** **模块启用要即时生效**
-  现在 `config.json` 的 `tools` 段（6 个工具开关）改了**必须重启宿主**——
-  因为 `lib/index.js` 的 `PLUGIN_CONFIG` 是**模块加载时读一次**。
-  要改成每次 `apply` / 每次调用时读，或监听 `config.json` 变化。
-  *用户原话：「以及模块是否启用应该即时生效，不是吗？」*
-
-- [ ] **设置页面本身**
+- [x] ~~**[#16](https://github.com/scrapfox149/dsh-memory-maint/issues/16)** 模块启用要即时生效~~ ✅ 2026-11-25（disposer + 1 秒轮询 + 自写流水）
+- [x] ~~ **设置页面本身**~~ ✅ 2026-11-25
   机制：`client.inject: ['settings']` + `lib/client.js`，把 `config.json` 的六段做成表单。
   *说明界面和设置页面是同一套 UI 机制，先做设置页，说明界面顺势就有。*
 
@@ -51,7 +46,17 @@
 
 ---
 
-## 四、已完成（2026-11-24）
+## 四、已完成
+
+### 2026-11-25
+
+- **#16 模块启用即时生效** —— `ctx.tools.register()` 返回的 disposer + 1 秒轮询 `config.json`；
+  宿主 logger 会去重，所以自己写一份 `tool-sync.log`
+- **#13 `project` 按子类过滤** —— `--decisions` / `--quotes` / `--todo`（可组合）
+- **`mem_query assets`** —— 项目资产清单（新命令，不在原 issue 里）
+- **`--json` 6 个动作**（#12 已做 7/8，差 `file`，等能力下沉时一起）
+
+### 2026-11-24
 
 - ✅ **6 个工具 / 35 个动作**（删了 `mapexport`，`help` 里分常用/低频）
 - ✅ **六段可配置**：`agent` / `start` / `selftest` / `backup` / `paths` / `tools`

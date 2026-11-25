@@ -7,6 +7,53 @@
 
 ---
 
+## [0.4.0] - 2026-11-25
+
+> 这一版的主线是 **「能改的立刻生效」** 和 **「知道项目现在有什么」**。
+
+### 新增
+
+- **`mem_query assets <项目>`** —— 项目资产清单：扫 config.json 里 `assets.<项目>` 配的目录
+  + 列库里 `project` 字段指向该项目的记忆。`--json` / `--limit` / `--selftest`。
+- **`mem_check start` 里列「项目资产」**（`start.showAssets` 控制）：
+  ```
+  项目资产：
+    dsh：126 个文件 / 239 条记忆
+    盾构激光靶：14 个文件 / 30 条记忆
+  ```
+  实现上调 `assets --json` 拿数字——**扫描逻辑只有一份**（合并入口，不合并脚本）。
+
+### 改进
+
+- **`mem_query` 的 6 个动作支持 `--json`**（`project` / `people` / `dump` / `expand` / `hipporag` / `why`），
+  接别的工具不用再解析文本。**文本模式的输出一个字都没变**，`--json` 是凭空多出来的一条路。
+- **所有配置项即时生效**：`PLUGIN_CONFIG` 原来是模块加载时读一次，现在每次 `runPython` 重新读——
+  `backup.exportDir` 之类改了不用重启宿主。
+
+### 修复
+
+- **`tools` 段改了不用重启宿主**（issue #16）。
+  - `ctx.tools.register()` 返回的 **disposer** 之前一直被忽略，现在用它做真开关
+  - 1 秒轮询 `config.json` 的 `mtime`（**`fs.watch` 在 Windows 上实测只触发一次**）
+  - **自己写一份流水** `$DSH_MEMORY_LOG_DIR/tool-sync.log`——宿主 logger 会对内容相同的日志去重
+    （`log.repeated`），"改回 true"那条会被吞掉
+  - `tests/switch-test.mjs`（mock ctx，11 项）+ 加进 CI
+- **`check-memory-refs` 加了负向后视**：不再把「插件内部的 `docs/CONFIG.md`」误报成工作区的
+- **`project` 支持 `--decisions` / `--quotes` / `--todo`** 按子类过滤（可组合）。
+
+### 文档
+
+- `docs/CONFIG.md`：六段 → **七段速查**，新增 `assets` 段，**修正「`tools` 要重启」的过时说明**
+- `README`：`mem_query` 7 → 8 个动作
+- `mem_check help`：意图清单里加「这个项目已有什么」
+- 新增 `docs/design-experience-reuse.md`（经验复用的设计笔记，还没实现）
+
+### 测试
+
+冒烟 **37**（+2）/ 单元 30 / 新功能 **20**（+6）/ 开关 11 —— 全绿。
+
+---
+
 ## [0.3.0] - 2026-11-24
 
 > 今天共 58 个提交。这一版的核心变化是**从「补功能」转向「足够好用、需要时想得起来」**。

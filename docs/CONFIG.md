@@ -6,23 +6,24 @@
 
 ## 一句话
 
-**六段配置全部在插件根的 `config.json`**，改它就行，不用改代码。
+**七段配置全部在插件根的 `config.json`**，改它就行，不用改代码。
 
 **生效方式**（重要，别答错）：
 
 | 段 | 改了要重启吗 |
 |---|---|
-| `agent` / `start` / `backup` / `paths` | **不用**（Python 每次读） |
-| `tools` | **要重启宿主**（已知缺陷，见 issue #16） |
+| `agent` / `start` / `assets` / `backup` / `paths` | **不用**（Python 每次读） |
+| `tools` | **不用**（2026-11-25 起即时生效：插件 1 秒轮询 `config.json`，改了当场摘掉/挂上工具） |
 
 ---
 
-## 六段速查
+## 七段速查
 
 | 段 | 用户什么时候会想改 | 默认值 |
 |---|---|---|
 | [`agent`](#agent) | 想换 AI 的名字 | `"DeepSeek"` |
 | [`start`](#start) | 有自己的开工清单（四问五思换成别的） | `start-checklist.md` |
+| [`assets`](#assets) | 想让 `mem_check assets <项目>` 扫哪些目录 | 两个项目各配了目录 |
 | [`selftest`](#selftest) | 加了自己的脚本，要不要跑 `--selftest` | 35 个老脚本的白名单 |
 | [`backup`](#backup) | 换备份盘 / 只想备一份 / 换导出目录 | 两个路径 |
 | [`paths`](#paths) | 本机归档、快照、日志在哪 | **没配就跳过**（不算故障） |
@@ -46,6 +47,24 @@
 
 ---
 
+## assets
+
+**管什么**：`mem_check assets <项目>` 扫哪些目录（项目资产清单）。
+
+```json
+"assets": {
+  "dsh": ["tools/dsh-memory-maint", "docs"],
+  "盾构激光靶": ["docs/shield-target"]
+}
+```
+
+- **值**：目录列表，相对工作区或绝对路径都行
+- **没配的项目**：`assets` **只列记忆**，不扫文件，并提示怎么配
+- **为什么不自动识别**：同一个项目的产物可能散在多处（插件 + docs + 成果目录），猜不出来
+- **`start` 里怎么显示**：由 `start.showAssets` 控制（默认 true）
+
+---
+
 ## start
 
 **管什么**：`mem_check start`（开工前）摆出来的检查清单。
@@ -56,10 +75,12 @@
   "expandOnDocsOnly": false,     // 只有 .md 改动时也展开？
   "timeoutSeconds": 10,          // git 检查超时
   "showTodoCount": true,         // 显示待办条数
+  "showAssets": true,            // 开工时列「项目资产」（配了 assets 的项目）
   "checklist": "start-checklist.md"   // 清单文件（相对插件根）
 }
 ```
 
+- **`showAssets`**：开工时列「项目资产」（默认 true）。没配目录的项目不出现
 - **`checklist` 支持自己的文件**：`##` 是分组标题、`>` 是说明（不打印）、其它非空行是一条
 - **找不到文件**就用内置默认（内容与 `start-checklist.md` 一致）
 
