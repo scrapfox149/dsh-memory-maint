@@ -147,8 +147,9 @@ def run_one(layer, mod, script, db=None):
     if r.returncode != 0:
         # 有些脚本「有该做的事」时会故意返回非零（如 memory-daily 的“⚠ N 件事要做”），
         # 那是设计不是故障——只要它跑完了（输出了结论区）就算通过。
+        # 2026-11-26：**打印用法**也返回 1（`file` 不带查询词时），那同样是设计。
         out = r.stdout or ""
-        if "结论：" in out or "该做的" in out:
+        if "结论：" in out or "该做的" in out or "用法：" in out:
             return True, "有警告（退出码 %d）" % r.returncode
         return False, "退出码 %d" % r.returncode
     if not (r.stdout or "").strip():

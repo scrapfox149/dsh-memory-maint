@@ -111,7 +111,7 @@ paths.*          本机设施路径（没配就跳过）
 | `mem_status` | 1 | 插件自检（模块发现、契约层、库连通） |
 | **`mem_backup`** | 2 | **导出 / 恢复（救生圈）** |
 
-**「查」这一类**包括了 `mem_query` 的 8 个：`expand`（1 跳）/ `hipporag`（多跳）/ `file`（全文）/ `dump`（导出）/ `people`（人物）/ `assets`（项目资产）/ **`why`（为什么命中）** / **`project`（项目全景）**。
+**「查」这一类**包括了 `mem_query` 的 8 个：`expand`（1 跳）/ `hipporag`（多跳）/ `file`（**文件式检索**：搜 `memory-export/` 的副本 + `docs/`）/ `dump`（导出）/ `people`（人物）/ `assets`（项目资产）/ **`why`（为什么命中）** / **`project`（项目全景）**。
 
 忘了动作名就跑 `mem_check(action="help")`——它先按「我想干什么」列，再给完整清单。
 

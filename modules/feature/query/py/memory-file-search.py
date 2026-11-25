@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """文件式检索 v4：加文档长度归一化（修复"长文档什么都命中"），再测。"""
+import json
 import math
 import os
 import re
@@ -121,18 +122,90 @@ QUERIES = [
 ]
 
 if __name__ == "__main__":
-    docs = load_docs()
+    # 2026-11-26：**补上真正的命令行入口**。
+    # 之前这里只有硬编码的 QUERIES 自测——`mem.py file README` 会忽略 README 跑自测，
+    # 而 module.json 里它是个正经动作，用户跑了会以为插件坏了。
+    # 自测挪到 `--selftest`。
+    _args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    _flags = [a for a in sys.argv[1:] if a.startswith("-")]
+
+    if "--selftest" in _flags:
+        docs = load_docs(quiet=True)
+        idf, avg_len = build_stats(docs)
+        print("可检索 %d 条（文档 %d 份），平均长度 %.0f 字\n" % (
+            len(docs), sum(1 for d in docs if d["tier"] == "doc"), avg_len))
+        good = 0
+        for q, expects in QUERIES:
+            hits = search(q, docs, idf, avg_len, top=3)
+            first = hits[0] if hits else None
+            text = first[1]["body"] if first else ""
+            ok = any(e in text for e in expects)
+            good += 1 if ok else 0
+            print("%s %s" % ("✅" if ok else "❌", q))
+            for s, d in hits:
+                print("     %.3f [%s] %s | %s" % (s, d["tier"], str(d["id"])[:14],
+                                                  snippet(d["body"])))
+        print("\n首位命中：%d/%d" % (good, len(QUERIES)))
+        # 2026-11-26：这 13 条期望值是**当年**写的，文档和记忆一直在变，会漂。
+        # 它是**能力探测**（看检索质量），不是回归测试——所以只报告，不判失败。
+        # 真正的回归在 tests/verify-*.py 里，那里有独立算的期望值。
+        print("（这是能力探测，不判失败；命中率下降说明检索质量或语料变了，值得看一眼）")
+        sys.exit(0)
+
+    want_json = "--json" in _flags
+    top = 5
+    if "--top" in sys.argv:
+        i = sys.argv.index("--top")
+        try:
+            top = max(1, min(50, int(sys.argv[i + 1])))
+            if sys.argv[i + 1] not in _args:
+                pass
+        except Exception:
+            print("--top 需要一个数字")
+            sys.exit(1)
+        # 把 --top 的值从查询词里剔除
+        try:
+            _args.remove(sys.argv[i + 1])
+        except ValueError:
+            pass
+
+    if not _args:
+        print("用法：mem.py file <查询词> [--top N] [--json]")
+        print("      mem.py file --selftest        # 跑内置的自测查询")
+        print()
+        print("搜哪里：memory-export/ 的格式无关副本 + docs/ 下的 .md")
+        print("打分：BM25 风格（bigram 重叠 × IDF × 长度归一 × 层权重）")
+        sys.exit(1)
+
+    query = " ".join(_args)
+    docs = load_docs(quiet=want_json)      # JSON 模式下不打印提示（会污染 JSON）
     idf, avg_len = build_stats(docs)
-    print("可检索 %d 条（文档 %d 份），平均长度 %.0f 字\n" % (
-        len(docs), sum(1 for d in docs if d["tier"] == "doc"), avg_len))
-    good = 0
-    for q, expects in QUERIES:
-        hits = search(q, docs, idf, avg_len, top=3)
-        first = hits[0] if hits else None
-        text = first[1]["body"] if first else ""
-        ok = any(e in text for e in expects)
-        good += 1 if ok else 0
-        print("%s %s" % ("✅" if ok else "❌", q))
-        for s, d in hits:
-            print("     %.3f [%s] %s | %s" % (s, d["tier"], str(d["id"])[:14], snippet(d["body"])))
-    print("\n首位命中：%d/%d" % (good, len(QUERIES)))
+    hits = search(query, docs, idf, avg_len, top=top)
+
+    if want_json:
+        print(json.dumps({
+            "query": query,
+            "total": len(hits),
+            "searched": {"docs": len(docs),
+                         "with_export": os.path.isdir(EXPORT)},
+            "items": [{"score": round(s, 4), "tier": d["tier"], "id": str(d["id"])[:20],
+                       "snippet": snippet(d["body"], 200)} for s, d in hits],
+        }, ensure_ascii=False, indent=1))
+        sys.exit(0)
+
+    print("查询：%s" % query)
+    print("搜了 %d 条（memory-export %s，docs/ %s）\n" % (
+        len(docs),
+        "有" if os.path.isdir(EXPORT) else "无",
+        "有" if os.path.isdir(DOCS) else "无"))
+    if not hits:
+        print("没有匹配。换个词试试，或者用 `mem.py why` 看哪些词能撞上记忆。")
+        print()
+        print("结论：0 条匹配")
+        sys.exit(0)
+    for s, d in hits:
+        print("  %.3f [%s] %s" % (s, d["tier"], str(d["id"])[:20]))
+        print("      " + snippet(d["body"], 100))
+    print()
+    print("结论：%s 命中 %d 条" % (query, len(hits)))
+    sys.exit(0)

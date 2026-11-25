@@ -76,10 +76,15 @@ def main():
         #   还没有"按词搜索 + --json"的命令行入口（issue #12 差的就是它）。
         #   等实现了再加回来。
     ]
-    # 显式确认一下这个"未实现"状态，免得下次又以为是漏测：
-    out, _ = run("file", "README")
-    check("file 目前只跑自测、不接受查询词（issue #12，不是 bug）",
-          "可检索" in out, "它跑的是硬编码 QUERIES")
+    # 显式确认 `file` 现在**真的能搜**（2026-11-26 补上命令行入口；之前只跑硬编码自测）
+    out, _ = run("file", "备份", "--json")
+    try:
+        d = json.loads(out)
+        check("file 现在接受查询词并返回 JSON（issue #12 已补）",
+              "items" in d and "query" in d,
+              "query=%s, total=%s" % (d.get("query"), d.get("total")))
+    except Exception as e:
+        check("file 现在接受查询词并返回 JSON（issue #12 已补）", False, str(e)[:50])
     for c in combos:
         out, rc = run(*c)
         label = " ".join(c)
