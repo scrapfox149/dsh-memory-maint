@@ -60,6 +60,12 @@ def connect(db=None):
     path = db or DB
     if not os.path.exists(path):
         raise FileNotFoundError("记忆库不存在: %s" % path)
+    # 2026-11-26：**路径是目录**时 sqlite 只抛 `unable to open database file`（技术错误，
+    # 用户看不懂）。DSH_MEMORY_DB 填错是很容易发生的，给一句人话。
+    if os.path.isdir(path):
+        raise RuntimeError(
+            "记忆库路径指向的是一个**目录**，不是文件：%s\n"
+            "  → 应该是 …\\.dsh-meow\\memory.db 这种文件路径" % path)
     con = sqlite3.connect("file:%s?mode=ro" % path, uri=True)
     try:
         con.execute("select 1").fetchone()

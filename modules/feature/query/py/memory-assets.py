@@ -150,11 +150,17 @@ def main():
     if "--limit" in args:
         i = args.index("--limit")
         try:
-            limit = max(1, min(200, int(args[i + 1])))
-            del args[i:i + 1 + 1]
+            raw = int(args[i + 1])
         except Exception:
             print("--limit 需要一个数字")
             return 1
+        # 2026-11-26：负数/超大值原来被 max/min **静默夹住**（-3 变 1），
+        # 用户以为生效了其实没有 → 夹的时候说一句。
+        if raw < 1 or raw > 200:
+            clamped = max(1, min(200, raw))
+            print("（--limit %d 超出范围 1-200，按 %d 算）" % (raw, clamped))
+        limit = max(1, min(200, raw))
+        del args[i:i + 1 + 1]
 
     if not args:
         print("用法：mem.py assets <项目名> [--limit N] [--json]")
