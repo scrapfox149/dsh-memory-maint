@@ -243,10 +243,21 @@ def assets_summary():
     **不重复实现扫描逻辑**：调 `mem.py assets <项目> --json` 拿数字（合并入口，不合并脚本）。
     失败就整段不打印——`start` 是每天跑的，不能因为一个项目目录没了就报错。
     """
+    # 2026-11-25：配置从 0.4.1 起放**工作区**（升级不丢），不是插件根。
+    # 和 lib/index.js 的 configPath() 保持一致：工作区优先，插件根兜底。
     try:
         import json as _json
-        with open(os.path.join(ROOT, "config.json"), encoding="utf-8-sig") as f:
-            raw = _json.load(f)
+        from paths import workspace_root
+        cand = [
+            os.path.join(workspace_root(), "tools", "dsh-memory-maint", "config.json"),
+            os.path.join(ROOT, "config.json"),
+        ]
+        raw = {}
+        for _p in cand:
+            if os.path.exists(_p):
+                with open(_p, encoding="utf-8-sig") as f:
+                    raw = _json.load(f)
+                break
     except Exception:
         return []            # 配置读不到就当没配，不影响 start
     dirs = raw.get("assets") or {}
@@ -357,15 +368,23 @@ def main():
         print()
         print("=== 可配置（这是第一次提醒，之后不再主动提）===")
         print()
-        print("这个插件有六段配置，**不用改代码**：")
+        print("这个插件有七段配置，**不用改代码**（改完即时生效，不用重启）：")
         print("  agent.name       AI 的名字          默认 DeepSeek")
-        print("  tools.<工具名>   工具开关           false = 关掉（⚠ 要重启宿主）")
-        print("  backup.targets   备份几份 / 放哪      配 1 个就只备一份")
+        print("  tools.<工具名>   工具开关           false = 关掉（1 秒内生效）")
+        print("  assets.<项目>    项目资产扫哪些目录   没配就只列记忆")
+        print("  backup.targets   备份放哪几处        ⚠ 见下，默认关")
         print("  backup.exportDir 导出去向           默认 workspace/memory-export")
         print("  start.checklist  开工清单           可换成用户自己的规则")
         print("  paths.*          本机设施路径         没配就跳过")
         print()
-        print("  用户问「能不能改 / 能不能关」→ 照上面答；细节看插件根 CONFIG.md。")
+        print("⚠ **备份默认是关的**（tools.mem_backup = false）")
+        print("  mem_backup 用来导出/恢复记忆，但**备份到哪只有你自己知道**，")
+        print("  所以默认不注册它——不配的话它跑起来什么也不做，反而像坏了。")
+        print("  要开：config.json 里 tools.mem_backup = true，并配好 backup.targets")
+        print("        （建议两处、不同物理盘）。")
+        print("  **要现在设置吗？** 让 AI 带你看 CONFIG.md 的 backup 段，或直接说路径。")
+        print()
+        print("  用户问「能不能改 / 能不能关」→ 照上面答；细节看 CONFIG.md。")
         print("  随时能重看：mem_check help（有「可以改的」一节）")
         mark_config_tipped()
     return 0
