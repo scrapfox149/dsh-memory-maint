@@ -20,7 +20,7 @@
   },
   "selftest": {
     "_comment": "B 方案：清单外的脚本必须支持 --selftest（跑边界用例，返回 0=过）。清单内的是老脚本，已做过完整测试。",
-    "_legacyCount": 36,
+    "_legacyCount": 37,
     "legacy": [
       "memory-export.py",
       "memory-restore.py",
@@ -57,7 +57,8 @@
       "memory-why.py",
       "memory-alert.py",
       "memory-status.py",
-      "test-full.py"
+      "test-full.py",
+      "mem.py"
     ]
   },
   "backup": {
