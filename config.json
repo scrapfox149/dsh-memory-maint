@@ -1,11 +1,22 @@
 {
   "_comment": "dsh-memory-maint 的本地配置。改完下次调用即生效。没写的项用代码里的默认值。",
+  "assets": {
+    "_comment": "mem_check assets <项目>：项目名 → 要扫的目录（相对工作区，或绝对路径）。没配的项目只列记忆，不扫文件。",
+    "dsh": [
+      "tools/dsh-memory-maint",
+      "docs"
+    ],
+    "盾构激光靶": [
+      "docs/shield-target"
+    ]
+  },
   "start": {
     "_comment": "mem_check start（开工前提示）的行为",
     "expandOnPyChanges": true,
     "expandOnDocsOnly": false,
     "timeoutSeconds": 10,
-    "showTodoCount": true
+    "showTodoCount": true,
+    "showAssets": true
   },
   "selftest": {
     "_comment": "B 方案：清单外的脚本必须支持 --selftest（跑边界用例，返回 0=过）。清单内的是老脚本，已做过完整测试。",

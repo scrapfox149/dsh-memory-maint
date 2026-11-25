@@ -8,6 +8,7 @@
     "dump": "py/memory-dump-active.py",
     "people": "py/memory-people.py",
     "why": "py/memory-why.py",
-    "project": "py/memory-project.py"
+    "project": "py/memory-project.py",
+    "assets": "py/memory-assets.py"
   }
 }

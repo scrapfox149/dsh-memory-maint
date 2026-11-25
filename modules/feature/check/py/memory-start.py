@@ -48,6 +48,7 @@ DEFAULTS = {
     "expandOnDocsOnly": False,
     "timeoutSeconds": 10,
     "showTodoCount": True,
+    "showAssets": True,          # 2026-11-25：开工时列项目资产
     "checklist": "start-checklist.md",
 }
 
@@ -157,8 +158,9 @@ def selftest():
         (passed if cond else failed).append(name + ((" " + detail) if detail and not cond else ""))
 
     # ① 默认配置的形状
-    check("DEFAULTS 四个键齐全", set(DEFAULTS) == {
-        "expandOnPyChanges", "expandOnDocsOnly", "timeoutSeconds", "showTodoCount"})
+    check("DEFAULTS 六个键齐全", set(DEFAULTS) == {
+        "expandOnPyChanges", "expandOnDocsOnly", "timeoutSeconds", "showTodoCount",
+        "showAssets", "checklist"})
 
     # ② 配置文件不存在 → 全用默认
     old_root = globals().get("ROOT")
@@ -234,6 +236,39 @@ def mark_config_tipped():
         pass
 
 
+def assets_summary():
+    """列出配了目录的项目：文件数 + 记忆条数。
+
+    2026-11-25：用户提「项目记忆检索」——开工时要知道这个项目已有什么。
+    **不重复实现扫描逻辑**：调 `mem.py assets <项目> --json` 拿数字（合并入口，不合并脚本）。
+    失败就整段不打印——`start` 是每天跑的，不能因为一个项目目录没了就报错。
+    """
+    try:
+        import json as _json
+        with open(os.path.join(ROOT, "config.json"), encoding="utf-8-sig") as f:
+            raw = _json.load(f)
+    except Exception:
+        return []            # 配置读不到就当没配，不影响 start
+    dirs = raw.get("assets") or {}
+    names = [k for k in dirs if not k.startswith("_")]
+    if not names:
+        return []
+    script = os.path.abspath(os.path.join(_here, "..", "..", "query", "py", "memory-assets.py"))
+    if not os.path.exists(script):
+        return []
+    out = []
+    for name in names:
+        try:
+            r = subprocess.run([sys.executable, script, name, "--json"],
+                               capture_output=True, text=True, encoding="utf-8",
+                               errors="replace", timeout=30)
+            d = _json.loads(r.stdout)
+            out.append((name, d["files"]["total"], d["memories"]["total"]))
+        except Exception:
+            continue    # 这个项目跳过，不影响别的
+    return out
+
+
 def main():
     if "--selftest" in sys.argv:
         return selftest()
@@ -257,6 +292,16 @@ def main():
 
     print("=== 开工前 ===")
     print()
+
+    # 2026-11-25：项目资产（只列配了目录的项目；明细走 mem.py assets <项目>）
+    if CFG.get("showAssets", True):
+        _assets = assets_summary()
+        if _assets:
+            print("项目资产：")
+            for _name, _nf, _nm in _assets:
+                print("  %s：%d 个文件 / %d 条记忆" % (_name, _nf, _nm))
+            print("  （明细：mem.py assets <项目>）")
+            print()
 
     if not heavy:
         print("✅ %s（今天大概是查 / 看 / 说）" % reason)
