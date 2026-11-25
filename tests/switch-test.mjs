@@ -53,7 +53,10 @@ const ctx = {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const names = () => [...live.keys()].sort()
 const writeCfg = (obj) => writeFileSync(CFG, JSON.stringify(obj, null, 2) + '\n', 'utf8')
-const baseCfg = JSON.parse(original)
+// 2026-11-25：显式给全 6 个工具都开，不依赖生产 config.json 的内容
+// （mem_backup 从这版起**默认关闭**，不写 true 的话它会少注册一个）
+const baseCfg = { ...JSON.parse(original) }
+baseCfg.tools = { ...(baseCfg.tools || {}), mem_backup: true }
 const syncLog = join(stateDir, 'tool-sync.log')
 const syncLines = () => (existsSync(syncLog) ? readFileSync(syncLog, 'utf8').trim().split('\n').filter(Boolean) : [])
 
@@ -74,12 +77,15 @@ check('mem_maint 回来了', live.has('mem_maint'), '现在 ' + live.size + ' �
 console.log('\n=== ④ 写坏 JSON ===')
 writeFileSync(CFG, '{ 这不是 JSON', 'utf8')
 await sleep(1500)
-check('没崩（仍 6 个）', live.size === 6, '现在 ' + live.size + ' 个')
+// 配置读不到 → 用内置默认 → mem_backup 默认关，所以是 5 个（不是 6）
+check('没崩（坏配置回落默认，mem_backup 默认关 → 5 个）', live.size === 5,
+      '现在 ' + live.size + ' 个')
 
 console.log('\n=== ⑤ 删除 config.json ===')
 unlinkSync(CFG)
 await sleep(1500)
-check('没崩（删配置后仍可用）', live.size === 6, '现在 ' + live.size + ' 个')
+check('没崩（删配置后回落默认 → 5 个）', live.size === 5,
+      '现在 ' + live.size + ' 个')
 writeCfg(baseCfg)
 await sleep(1200)
 
@@ -106,6 +112,20 @@ console.log('\n=== ⑧ check-memory-refs 的负向后视 ===')
 const refsSrc = readFileSync(join(ROOT, 'modules/feature/check/py/check-memory-refs.py'), 'utf8')
 const hasLookbehind = refsSrc.includes('(?<![A-Za-z0-9_\\-./\\\\])')
 check('PATH_RE 有负向后视', hasLookbehind, hasLookbehind ? '' : '没找到 (?<!...)')
+
+console.log('\n=== ⑩ 不配 mem_backup 时它不注册（默认关）===')
+{
+  const noBackup = { ...baseCfg }
+  noBackup.tools = { mem_check: true, mem_maint: true, mem_query: true,
+                     mem_alert: true, mem_status: true }   // 故意不写 mem_backup
+  writeCfg(noBackup)
+  await sleep(1500)
+  check('mem_backup 默认不注册', !live.has('mem_backup'), '现在 ' + live.size + ' 个')
+  check('其他 5 个仍在', live.size === 5, '现在 ' + live.size + ' 个')
+  writeCfg(baseCfg)
+  await sleep(1500)
+  check('显式配 true 后重新注册', live.has('mem_backup'), '现在 ' + live.size + ' 个')
+}
 
 console.log('\n=== ⑨ 自己写的 tool-sync.log ===')
 const lines = syncLines()

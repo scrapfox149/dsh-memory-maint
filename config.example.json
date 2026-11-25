@@ -31,11 +31,11 @@
     "backupLog": ""
   },
   "tools": {
-    "_comment": "工具开关。不配 = 全开；配 false 的那个不注册。改了即时生效（1 秒内）。",
+    "_comment": "工具开关。不配 = 全开；配 false 的那个不注册。改了即时生效（1 秒内）。\n    ⚠ mem_backup 例外：**默认关闭**，要配 true 才开——因为它是救生工具（导出/恢复），而备份路径只有你自己知道。",
     "mem_check": true,
     "mem_maint": true,
     "mem_query": true,
-    "mem_backup": true,
+    "mem_backup": false,
     "mem_alert": true,
     "mem_status": true
   }
