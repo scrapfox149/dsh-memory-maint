@@ -1,0 +1,42 @@
+{
+  "_comment": "dsh-memory-maint 的配置样例。复制成 config.json 再改（放在工作区的 tools/dsh-memory-maint/ 下）。这个文件本身不会被读。",
+  "agent": {
+    "_comment": "AI 的名字。备份/恢复文档的文件名和正文里会用它。",
+    "name": "DeepSeek"
+  },
+  "assets": {
+    "_comment": "mem_check assets <项目>：项目名 → 要扫的目录（相对工作区或绝对路径）。没配的项目只列记忆。",
+    "示例项目": [
+      "docs"
+    ]
+  },
+  "start": {
+    "_comment": "mem_check start（开工前提示）的行为",
+    "expandOnPyChanges": true,
+    "expandOnDocsOnly": false,
+    "timeoutSeconds": 10,
+    "showTodoCount": true,
+    "showAssets": true
+  },
+  "backup": {
+    "_comment": "备份目标（两处最好是不同物理盘）与格式无关副本的导出目录（留空 = 默认 workspace/memory-export）",
+    "targets": [],
+    "exportDir": ""
+  },
+  "paths": {
+    "_comment": "本机设施路径。**没配就跳过**对应检查，不算故障。",
+    "archives": [],
+    "snapshotDir": "",
+    "historyDir": "",
+    "backupLog": ""
+  },
+  "tools": {
+    "_comment": "工具开关。不配 = 全开；配 false 的那个不注册。改了即时生效（1 秒内）。",
+    "mem_check": true,
+    "mem_maint": true,
+    "mem_query": true,
+    "mem_backup": true,
+    "mem_alert": true,
+    "mem_status": true
+  }
+}
