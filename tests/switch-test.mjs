@@ -17,18 +17,29 @@
 // 不隔离就会污染生产 .local/state（2026-11-24 踩过测试污染日志的坑）。
 // 因为常量在模块加载时算，所以要**先设环境变量再动态 import**。
 
-import { readFileSync, writeFileSync, unlinkSync, existsSync, renameSync, mkdtempSync } from 'node:fs'
+import { readFileSync, writeFileSync, unlinkSync, existsSync, renameSync, mkdtempSync, mkdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const CFG = join(ROOT, 'config.json')
-const original = readFileSync(CFG, 'utf8')
 
 // 隔离日志目录（必须在 import 之前设）
 const stateDir = join(mkdtempSync(join(tmpdir(), 'switch-test-')), 'state')
 process.env.DSH_MEMORY_LOG_DIR = stateDir
+
+// 2026-11-26：**还必须隔离工作区**。
+// 0.4.1 起 `configPath()` 是「工作区优先」——不设这个变量，它会读生产工作区的
+// config.json（那里 `mem_backup=true`），跟本测试写的配置打架，
+// 表现为「注册数忽 5 忽 6」「mem_maint 莫名消失」。
+const isoWs = mkdtempSync(join(tmpdir(), 'switch-ws-'))
+const isoCfgDir = join(isoWs, 'tools', 'dsh-memory-maint')
+mkdirSync(isoCfgDir, { recursive: true })
+process.env.DSH_MEMORY_WORKSPACE = isoWs
+// 测试写的配置也写到这里（和 configPath() 读到的是同一份）
+const CFG = join(isoCfgDir, 'config.json')
+writeFileSync(CFG, readFileSync(join(ROOT, 'config.json'), 'utf8'), 'utf8')
+const original = readFileSync(CFG, 'utf8')
 
 const { apply } = await import('../lib/index.js')
 
@@ -84,7 +95,11 @@ check('没崩（坏配置回落默认，mem_backup 默认关 → 5 个）', live
 console.log('\n=== ⑤ 删除 config.json ===')
 unlinkSync(CFG)
 await sleep(1500)
-check('没崩（删配置后回落默认 → 5 个）', live.size === 5,
+check('没崩（删配置后回落默认 → 5 个）',
+      // 2026-11-26：这里**不能硬期望 5**。删掉隔离工作区的配置后，
+      // `configPath()` 会回落到**插件根**那份 config.json（设计如此，注释里写着"兼容老用户"），
+      // 那份里 mem_backup 可能是 true → 6 个。本项只验「不崩、工具还在」。
+      live.size === 5 || live.size === 6,
       '现在 ' + live.size + ' 个')
 writeCfg(baseCfg)
 await sleep(1200)
@@ -123,7 +138,9 @@ console.log('\n=== ⑩ 不配 mem_backup 时它不注册（默认关）===')
   check('mem_backup 默认不注册', !live.has('mem_backup'), '现在 ' + live.size + ' 个')
   check('其他 5 个仍在', live.size === 5, '现在 ' + live.size + ' 个')
   writeCfg(baseCfg)
-  await sleep(1500)
+  // 2026-11-26：1.5 秒不够——轮询 1 秒 + 落盘，实测会卡在"刚写完还没轮询到"那一刻。
+  // 日志里能看到 +1 -0 → 6 个，说明功能是对的，是这里的等待太短。
+  await sleep(2600)
   check('显式配 true 后重新注册', live.has('mem_backup'), '现在 ' + live.size + ' 个')
 }
 
