@@ -90,6 +90,7 @@ INTENTS = [
     ("这个项目已有什么（文件 + 记忆）", 'mem_query assets <项目>'),
         ("跟这个相关的还有哪些", 'mem_query expand "<关键词>"'),
     ("间接相关、1 跳够不着的", 'mem_query hipporag "<查询>"'),
+    ("文档里提到过某个说法", 'mem_query file "<关键词>"'),
     ("有没有该退场/重复的", "mem_maint decay / dedup / dream"),
     ("某一天的记忆脉络", "mem_maint timeline"),
     ("备份 / 恢复", "mem_backup export / restore"),

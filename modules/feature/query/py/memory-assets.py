@@ -43,6 +43,11 @@ TIERS = ("project", "fact", "lesson", "topic", "rules", "user", "soul")
 TIER_CN = {"project": "项目", "fact": "事实", "lesson": "教训", "topic": "话题",
            "rules": "规则", "user": "用户", "soul": "自身"}
 SKIP_DIRS = {".git", "__pycache__", "node_modules", ".local", "tmp", "state", ".venv"}
+# 2026-11-26（一号用户测试发现）：`.tgz` 试装包、运行日志这类**构建产物/运行产物**
+# 不该算"项目资产"。只排除缓存不够。
+SKIP_SUFFIX = (".pyc", ".pyo", ".tgz", ".tar.gz", ".zip", ".log")
+SKIP_NAMES = {"errors.jsonl", "runtime.log", "tool-sync.log", "config-tipped",
+              ".DS_Store", "Thumbs.db"}
 
 
 def load_cfg():
@@ -71,7 +76,7 @@ def scan_files(dirs, ws, limit):
         for root, subdirs, files in os.walk(base):
             subdirs[:] = [s for s in subdirs if s not in SKIP_DIRS]
             for fn in files:
-                if fn.endswith((".pyc", ".pyo")):
+                if fn.endswith(SKIP_SUFFIX) or fn in SKIP_NAMES:
                     continue
                 fp = os.path.join(root, fn)
                 try:
