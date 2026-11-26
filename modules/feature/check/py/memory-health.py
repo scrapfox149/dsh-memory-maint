@@ -121,3 +121,15 @@ elif wal_mb > 1:
     print("  [OK] WAL 偏大但可接受（下次备份会合并）")
 else:
     print("  [OK] WAL 正常")
+
+print()
+_sum = {"active": 0, "stale": 0, "archived": 0}
+if isinstance(cnt, dict):
+    for _t, _v in cnt.items():
+        for _k in _sum:
+            try:
+                _sum[_k] += int((_v or {}).get(_k, 0) or 0)
+            except (TypeError, ValueError):
+                pass
+print("结论：共 %d 条（active %d / stale %d / archived %d）"
+      % (total, _sum["active"], _sum["stale"], _sum["archived"]))

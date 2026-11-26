@@ -207,6 +207,9 @@ def main():
         open(args.out, "w", encoding="utf-8").write(text)
         print("\n报告已写入：%s" % args.out)
 
+    print()
+    print("结论：%s" % ("⚠ %d 对候选，其中 %d 对关键词也重叠（这两个更值得看）"
+                      % (len(pairs), len(linked)) if pairs else "✅ 没发现重复"))
 
 if __name__ == "__main__":
     main()

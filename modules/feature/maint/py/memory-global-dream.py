@@ -128,6 +128,11 @@ def main():
         print("  [%s] %s %s" % (reason, i["tier"], i["id"][:12]))
 
     print("\n（以上均为只读扫描，未修改任何数据）")
+    print()
+    _n = len(dups) + len(retire) + len(sus) + len(kw_bad)
+    print("结论：扫了 %d 条，发现 %d 个值得看一眼的"
+          "（重复 %d / 该退场 %d / 权重可疑 %d / 关键词异常 %d）"
+          % (len(items), _n, len(dups), len(retire), len(sus), len(kw_bad)))
 
 
 if __name__ == "__main__":

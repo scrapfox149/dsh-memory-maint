@@ -55,3 +55,6 @@ for it in items:
                                             (it["content"] or "")[:58].replace("\n", " ")))
 print()
 print("偏差条数:", changed, "/", len(items))
+print()
+print("结论：%s" % ("⚠ %d 条权重建议调整（规则初筛，需人工复核）" % changed if changed
+                  else "✅ %d 条权重都对得上" % len(items)))

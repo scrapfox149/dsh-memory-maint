@@ -90,3 +90,6 @@ print()
 print("== 缺「事件时间」：%d 条 ==" % len(no_date))
 for t, c in no_date[:8]:
     print("  [%s] %s" % (t, c[:70].replace("\n", " ")))
+print()
+_tot = len(no_date)
+print("结论：%s" % ("⚠ %d 条缺事件时间" % _tot if _tot else "✅ 条目的时间信息齐全"))

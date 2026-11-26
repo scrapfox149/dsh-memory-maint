@@ -68,3 +68,7 @@ for days, due, t, iid, imp, content in rows:
         tag = "剩 %d 天" % days
     print("[%s] %s | %s" % (tag, due, (content or "")[:70].replace("\n", " ")))
     print("      %s %s" % (t, iid[:12]))
+
+    print()
+    _n = len(due_list) if "due_list" in dir() else 0
+    print("结论：%s" % ("⚠ %d 条到期约定" % _n if _n else "✅ 没有到期约定"))

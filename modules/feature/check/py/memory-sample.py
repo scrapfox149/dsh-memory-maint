@@ -68,3 +68,6 @@ print()
 print("=== 组合分布 ===")
 for key in sorted(groups):
     print("%-8s %-6s w%s %-8s → %d 条" % (key[0], key[1], key[2], key[3], len(groups[key])))
+print()
+print("结论：从 %d 种组合里抽了 %d 条（含 %d 条太久没碰的）"
+      % (len(groups), len(sample) + len(old_sample), len(old_sample)))

@@ -160,3 +160,6 @@ for s in (minor if _show_all else minor[:40]):
     print("  - " + s)
 if len(minor) > 40 and not _show_all:
     print("  …… 还有 %d 条（要全看加 --all）" % (len(minor) - 40))
+print()
+print("结论：%s" % ("⚠ 建议修 %d 条（多为「偏长」，不影响检索）" % len(minor)
+                  if minor else "✅ 没有要修的"))

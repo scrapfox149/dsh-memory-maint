@@ -122,6 +122,9 @@ def main():
         print("        %s" % i["c"].replace("\n", " ")[:74])
 
     print("\n（只读扫描，未修改任何数据；user / soul / rules 全量注入，不参与本扫描）")
+    print()
+    print("结论：%d 条能算衰减（%d 条有访问记录），%d 条从未被召回"
+      % (len(accessed), len(accessed), len(idle)))
 
 
 if __name__ == "__main__":

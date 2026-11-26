@@ -63,6 +63,9 @@ for tier, iid in refs:
         print("  ✅ %s `%s` → %s（%s）" % (tier or "?", iid[:12], present[hits[0]], hits[0][:12]))
 print()
 print("有效引用: %d / %d，缺失: %d" % (found, len(refs), len(missing)))
+print()
+print("结论：%s" % ("⚠ %d 条 AGENTS 引用的记忆不存在" % len(missing) if missing
+                  else "✅ %d 条引用全部有效" % len(refs)))
 
 # 异常测试（手工验证用）：
 # 在 AGENTS 里加一行 `→ 记忆库 rules `zzzzzzzz``，应报「记忆库里没有」

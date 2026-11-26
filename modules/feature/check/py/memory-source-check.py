@@ -55,3 +55,6 @@ print()
 for t, iid, c in bad[:20]:
     print("[%s] %s" % (t, c[:90].replace("\n", " ")))
     print("      %s" % iid[:14])
+print()
+print("结论：%s" % ("⚠ %d 条提及他人但缺来源标记" % len(bad) if bad
+                  else "✅ 提到他人的条目都标了来源"))

@@ -65,3 +65,6 @@ for key, where in missing:
     print("[X] %s" % key)
     for t, iid in where[:3]:
         print("   [%s] %s" % (t, iid[:12]))
+print()
+print("结论：%s" % ("⚠ %d 个引用失效" % len(missing) if missing
+                  else "✅ 引用的文件都在"))

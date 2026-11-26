@@ -221,5 +221,9 @@ if bad:
     print("=== 问题 %d 项 ===" % len(bad))
     for k in bad:
         print("  [!!] " + k)
+    print()
+    print("结论：⚠ %d 项不一致" % len(bad))
     sys.exit(1)
 print("全部一致。")
+print()
+print("结论：✅ %d 项全部一致（跳过 %d 项）" % (len(ok), len(skipped)))

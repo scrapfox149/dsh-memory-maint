@@ -79,3 +79,6 @@ for t, iid, imp, c in bad_low:
     print("  w%d [%s] %s" % (imp, t, c[:64].replace("\n", " ")))
 print()
 print("越级条数:", len(bad_high) + len(bad_low))
+print()
+print("结论：%s" % ("⚠ %d 条权重与内容不符（候选，需人工看）" % (len(bad_high) + len(bad_low))
+                  if (len(bad_high) + len(bad_low)) else "✅ 权重与内容相符"))
