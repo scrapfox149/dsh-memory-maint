@@ -50,9 +50,37 @@ def run(rel):
     try:
         r = subprocess.run([PY, path], capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=180, env=env)
-        return (r.stdout or "") + (r.stderr or ""), None
     except Exception as e:
-        return None, str(e)
+        return None, str(e)[:120]
+    out = (r.stdout or "") + (r.stderr or "")
+    # 2026-11-26（极限边界测试抓到）：**子脚本崩了不能当成功**。
+    # 之前 `return out, None` 不看退出码 → `audit` 崩了（输出里是报错）
+    # → 后面 grab() 抓不到数字得到 "?" → 落进 else 分支写「写法无必须修项」。
+    # **库损坏了还报"全绿"**，比崩溃危险得多。
+    if err_like(out):
+        tail = [l for l in out.strip().splitlines() if l.strip()]
+        return out, ("子脚本报错（退出码 %d）：%s"
+                     % (r.returncode, tail[-1][:100] if tail else "无输出"))
+    return out, None
+
+
+def err_like(out):
+    """输出里有没有"这次跑坏了"的痕迹。
+
+    三条都认，缺一不可：
+      ① Traceback 指向自己脚本
+      ② `[stderr]` 里有 Error/错误
+      ③ 任何位置出现 RuntimeError / FileNotFoundError 等异常名
+         （**不能用行首锚点**——out 是 stdout+stderr 拼的，异常往往在中间）
+    """
+    if re.search(r'File ".*(py-core|modules)[\\/]', out):
+        return True
+    if re.search(r"\b(RuntimeError|FileNotFoundError|ValueError|KeyError|"
+                 r"OperationalError|DatabaseError|PermissionError)\b", out):
+        return True
+    if re.search(r"(记忆库损坏|不是 SQLite|无法读取|记忆库不存在)", out):
+        return True
+    return False
 
 
 def grab(text, pattern, default=None):
@@ -72,11 +100,13 @@ def main():
 
     todo = []
     okays = []
+    broken = []      # 2026-11-26：子检查跑不成的名字（库坏了/脚本崩了）
 
     # audit：必须修 / 建议修
     out, err = results["audit"]
     if err:
         print("  audit   ✗ %s" % err[:80])
+        broken.append("audit")
     else:
         must = grab(out, r"必须修（(\d+)）", "?")
         minor = grab(out, r"建议修（(\d+)）", "?")
@@ -90,6 +120,7 @@ def main():
     out, err = results["signal"]
     if err:
         print("  signal  ✗ %s" % err[:80])
+        broken.append("signal")
     else:
         n = grab(out, r"共\s*(\d+)\s*条", "?")
         print("  权重信号 %s 条（候选，规则会误报，需人工看）" % n)
@@ -100,6 +131,7 @@ def main():
     out, err = results["source"]
     if err:
         print("  source  ✗ %s" % err[:80])
+        broken.append("source")
     else:
         # 它的输出是「提及他人但没有来源标记: 7 条」，不是「共 N 条」（2026-11-24 踩到）
         n = grab(out, r"没有来源标记:\s*(\d+)\s*条", None)
@@ -119,6 +151,11 @@ def main():
         # 检查类脚本的契约：**无论有没有问题都要打一行「结论：」**——
         # 冒烟测试靠它区分「跑完了但有警告」和「跑崩了」（2026-11-24 踩到）
         print("结论：⚠ %d 项需要处理" % len(todo))
+    elif broken:
+        # 2026-11-26（极限边界测试抓到）：**子检查跑不成时不能说"没有必须处理的项"**。
+        # 之前库损坏 → audit 报错但被当"0 条" → 这里仍打 ✅，用户会以为库是好的。
+        print("结论：⚠ %d 项检查没跑成（%s）—— 数字不可信，先修库/脚本"
+              % (len(broken), "、".join(broken)))
     else:
         print("结论：✅ 内容质量没有必须处理的项")
     if okays:
@@ -134,7 +171,7 @@ def main():
             else:
                 print((out or "").strip()[:2000])
             print()
-    return 1 if todo else 0
+    return 1 if (todo or broken) else 0
 
 
 if __name__ == "__main__":

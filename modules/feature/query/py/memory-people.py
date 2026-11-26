@@ -48,6 +48,9 @@ for t in TIERS:
         for iid, content, imp, status in fetch(t, ["id", "content", "importance", "status"],
                                                status="active"):
             rows.append((iid, content or "", imp or 1, t))
+    except RuntimeError:
+        # 2026-11-26（极限边界测试抓到）：库损坏不能当"这层是空的"，要往上抛
+        raise
     except Exception:
         continue
 groups = {}

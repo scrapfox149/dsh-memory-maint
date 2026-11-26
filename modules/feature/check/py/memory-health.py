@@ -83,6 +83,9 @@ dups = 0
 for t in TIERS:
     try:
         items = fetch(t, ["id", "title"], status="active")
+    except RuntimeError:
+        # 2026-11-26（极限边界测试抓到）：库损坏不能当"这层是空的"，要往上抛
+        raise
     except Exception:
         import traceback, os as _os, sys as _sys
         try:
