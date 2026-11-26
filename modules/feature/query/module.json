@@ -9,6 +9,7 @@
     "people": "py/memory-people.py",
     "why": "py/memory-why.py",
     "project": "py/memory-project.py",
-    "assets": "py/memory-assets.py"
+    "assets": "py/memory-assets.py",
+    "hotfiles": "py/memory-hotfiles.py"
   }
 }
