@@ -6,6 +6,7 @@
 """
 import os
 import re
+import subprocess
 import sys
 _here = os.path.dirname(os.path.abspath(__file__))
 for _up in range(1, 5):
@@ -151,6 +152,62 @@ if os.path.exists(agents):
         check("AGENTS.md 提到 %s" % key, key in text)
 else:
     bad.append("AGENTS.md 不存在")
+
+# 5) tools/*.ps1 的 UTF-8 BOM + 语法（issue #19）
+#
+# 背景：2026-11-24 给 backup-memory.ps1 加 agent.name 支持时，文件被存成 UTF-8 **无 BOM**。
+# PowerShell 5.1 按 GBK 解析含中文的脚本 → **解析阶段就死**（一行没执行）。
+# 而计划任务显示 Ready、LastTaskResult=0x0 → **失败完全静默**：
+# backup.log 整整 27 小时没有记录，直到夜间自检才发现。
+#
+# 判据：① 前 3 字节必须是 EF BB BF ② ParseFile 的 $errs.Count 必须为 0。
+# 平台：这条是 PowerShell 5.1 + Windows 的坑；纯 Linux / pwsh 7 不成立，所以按平台分支。
+if IS_WINDOWS:
+    tools_dir = os.path.join(WS, "tools")
+    ps1s = []
+    if os.path.isdir(tools_dir):
+        ps1s = sorted(f for f in os.listdir(tools_dir) if f.lower().endswith(".ps1"))
+    if not ps1s:
+        skipped.append("tools/*.ps1（一个都没有）")
+    for fn in ps1s:
+        fp = os.path.join(tools_dir, fn)
+        # ① BOM
+        try:
+            with open(fp, "rb") as fh:
+                head = fh.read(3)
+        except OSError:
+            head = b""
+        check("%s 有 UTF-8 BOM" % fn, head == b"\xef\xbb\xbf",
+              "前 3 字节 = %r（应为 b'\\xef\\xbb\\xbf'）" % head)
+        # ② 语法（交给 PowerShell 自己的 Parser，比我们猜可靠）
+        try:
+            r = subprocess.run(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
+                 "$e=$null; [System.Management.Automation.Language.Parser]::ParseFile("
+                 "'%s',[ref]$null,[ref]$e) | Out-Null; $e.Count" % fp.replace("'", "''")],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90)
+            cnt = (r.stdout or "").strip().splitlines()[-1] if (r.stdout or "").strip() else "?"
+            n_err = int(cnt) if cnt.isdigit() else -1
+        except Exception as exc:
+            n_err = -1
+            cnt = str(exc)[:40]
+        check("%s 语法无错" % fn, n_err == 0,
+              ("%s 个语法错误" % cnt) if n_err != 0 else "")
+        # 有错就把第一条错误也列出来（否则只说"有错"没法修）
+        if n_err > 0:
+            try:
+                r2 = subprocess.run(
+                    ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
+                     "$e=$null; [System.Management.Automation.Language.Parser]::ParseFile("
+                     "'%s',[ref]$null,[ref]$e) | Out-Null; $e[0].Message" % fp.replace("'", "''")],
+                    capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90)
+                msg = (r2.stdout or "").strip().splitlines()
+                if msg:
+                    bad.append("%s 首个语法错误：%s" % (fn, msg[-1][:100]))
+            except Exception:
+                pass
+else:
+    skipped.append("tools/*.ps1 的 BOM/语法（非 Windows 环境不成立）")
 
 # 输出
 print("=== 通过 %d 项 ===" % len(ok))
