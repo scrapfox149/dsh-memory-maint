@@ -43,5 +43,13 @@
     "meow-memory": {
       "optional": false
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scrapfox149/dsh-memory-maint.git"
+  },
+  "homepage": "https://github.com/scrapfox149/dsh-memory-maint#readme",
+  "bugs": {
+    "url": "https://github.com/scrapfox149/dsh-memory-maint/issues"
   }
 }
