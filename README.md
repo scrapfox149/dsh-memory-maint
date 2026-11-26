@@ -181,7 +181,7 @@ py-core/              基础层
 
 ## 开发
 
-改代码前先读 [`docs/DEVELOPING.md`](./DEVELOPING.md) —— 里面有架构细节、加东西的流程、测试清单，**和十三个踩过的坑**。
+改代码前先读 [`docs/DEVELOPING.md`](docs/DEVELOPING.md) —— 里面有架构细节、加东西的流程、测试清单，**和十三个踩过的坑**。
 
 版本历史见 [`CHANGELOG.md`](./CHANGELOG.md)。
 

@@ -19,6 +19,7 @@
 import os
 import subprocess
 import sys
+import time
 
 if sys.stdout is not None:
     try:
@@ -112,6 +113,9 @@ def load_config():
 
 CFG = load_config()
 
+# 扫 mtime 时要跳过的目录（运行产物/缓存，不是"在改的东西"）
+_SKIP_DIRS = {".git", "__pycache__", "node_modules", ".local", "tmp", "state", ".venv"}
+
 
 def _workspace():
     """工作区根（用于判断"这里有没有在改东西"）。
@@ -127,28 +131,112 @@ def _workspace():
         return ROOT
 
 
+def _mtime_changes(ws, since=None, hours=24):
+    """扫 tools/ 和 docs/ 下 **since 之后**（或最近 N 小时）改过的文件，按类型分开。
+
+    2026-11-26：用户提「别人不一定是跟我们一样通过 git 来控制项目，
+    就例如我们自己的激光靶解析项目就没有」。
+
+    git 不是通用信号——所以补一个**不依赖任何工具**的判据：文件自己的 mtime。
+    和 git 的分工是：
+      · git status  → 看**当前未提交**的改动（最准的"正在改"）
+      · mtime       → 看**最近改过**的文件（不管提交没）
+    两个叠起来才完整：改完已提交的，只有 mtime 看得见。
+
+    **窗口用「上次开工以来」而不是固定 24 小时**（用户 2026-11-26 提）：
+    24 小时会漏判——昨天下午改的、今天上午看，就超了；
+    而"这一轮工作"是**相对上次 start** 的，不是固定的过去一天。
+    没有 last-start 记录（首次跑）才回落到 24 小时。
+    """
+    # 2026-11-26：`since` 减 1 秒容差。
+    # 判断粒度是「秒」就够了，没必要卡毫秒；但卡死会漏掉**和上次 start 同一秒**改的文件
+    # （实测：测试里连着跑 start 和改文件，mtime 和 last-start 落在同一毫秒 → 扫不到）。
+    # 宁可多算 1 秒，也不能漏。
+    cutoff = (since - 1) if since else (time.time() - hours * 3600)
+    py, md = [], []
+    for sub in ("tools", "docs"):
+        base = os.path.join(ws, sub)
+        if not os.path.isdir(base):
+            continue
+        for root, dirs, files in os.walk(base):
+            dirs[:] = [d for d in dirs if d not in _SKIP_DIRS]
+            for fn in files:
+                p = os.path.join(root, fn)
+                try:
+                    if os.path.getmtime(p) < cutoff:
+                        continue
+                except OSError:
+                    continue
+                rel = os.path.relpath(p, ws)
+                if fn.endswith(".py"):
+                    py.append("M " + rel)
+                elif fn.endswith((".md", ".json", ".yml")):
+                    md.append("M " + rel)
+    return py, md
+
+
+def _last_start_path():
+    d = _state_dir()
+    return os.path.join(d, "last-start") if d else None
+
+
+def _last_start_ts():
+    """上次 start 的时间戳（秒）。没有/读不到 → None。"""
+    p = _last_start_path()
+    if not p or not os.path.exists(p):
+        return None
+    try:
+        with open(p, encoding="utf-8") as f:
+            return float(f.read().strip())
+    except Exception:
+        return None
+
+
+def _mark_start_ran():
+    """记下这次 start 的时间（下次判断就用它当窗口起点）。"""
+    p = _last_start_path()
+    if not p:
+        return
+    try:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            f.write("%.0f\n" % time.time())
+    except Exception:
+        pass
+
+
 def git_changes():
-    """看工作区里有没有未提交改动，按类型分开数。
+    """看这个工作区最近有没有在动东西。返回 (py, md, source)。
 
     2026-11-24：用户提「普通小项目小事没必要动这套规则，问题是怎么让它被需要时出现」。
-    不能靠"我自己判断今天算不算大事"（那又是自觉），要看**可观测的信号**：
-    工作区里有没有真在被改的脚本 / 文档。
+    不能靠"我自己判断今天算不算大事"（那又是自觉），要看**可观测的信号**。
+
+    2026-11-26 三级判断（用户提的）：
+      ① **有 last-start** → 看「上次 start 之后」改过的（最准，就是"这一轮"）
+      ② **没有记录（首次）** → 回落到最近 24 小时
+      ③ **任何情况都再叠 git status**（有 git 时；未提交的改动算"正在改"）
+    没 git 的项目（激光靶那种）只走 ①②，也能正确判断。
+
+    source: "last-start+mtime" / "24h+mtime" / 加 "+git"
     """
+    ws = _workspace()
+    since = _last_start_ts()
+    py_m, md_m = _mtime_changes(ws, since=since)
+    win = "last-start" if since else "24h"
+
     try:
-        r = subprocess.run(["git", "status", "--porcelain"], cwd=_workspace(),
+        r = subprocess.run(["git", "status", "--porcelain"], cwd=ws,
                            capture_output=True, text=True, encoding="utf-8",
                            errors="replace", timeout=CFG["timeoutSeconds"])
-        # 2026-11-25 修：退出码非 0 说明**读不到**（不在 git 仓库里），不是"没有改动"。
-        # 之前只捕异常，git 存在但不在仓库里时 stdout 为空 → 被当成没改动 → 错走轻路。
-        # 设计是"读不到就保守当重"，所以这里必须返回 None。
         if r.returncode != 0:
-            return None, None
+            return py_m, md_m, win
         lines = [l for l in (r.stdout or "").splitlines() if l.strip()]
     except Exception:
-        return None, None
+        return py_m, md_m, win
+
     py = [l for l in lines if l.rstrip().endswith(".py")]
     md = [l for l in lines if l.rstrip().endswith((".md", ".json", ".yml"))]
-    return py, md
+    return (list(dict.fromkeys(py + py_m)), list(dict.fromkeys(md + md_m)), win + "+git")
 
 
 def git_head():
@@ -305,22 +393,28 @@ def main():
     if "--selftest" in sys.argv:
         return selftest()
 
-    py_changes, md_changes = git_changes()
+    py_changes, md_changes, src = git_changes()
 
     # 判断场景：只在"真在动工具"时才把完整规则摆出来，否则一句话就够。
-    # 不靠感觉，靠工作区里有没有未提交的脚本改动。
-    if py_changes is None:
-        heavy = True          # 读不到 git 就保守当"重"（宁可多提醒）
-        reason = "读不到 git 状态，保守处理"
+    # 不靠感觉，靠可观测的信号：
+    #   ① 上次 start 之后 / 最近 24 小时，有没有 .py 被改过（mtime，不依赖 git）
+    #   ② 有 git 时再叠上未提交的改动
+    # 2026-11-26：先按"上次开工以来"算，不再硬用 24h —— 昨天下午改的今天上午看不会漏。
+    # 只有"首次跑、没有 last-start"才回落到 24h。
+    _win = "自上次开工以来" if src.startswith("last-start") else "最近 24 小时"
+    force_full = "--full" in sys.argv
+    if force_full:
+        heavy = True
+        reason = "手动要求完整版（--full）"
     elif py_changes and CFG["expandOnPyChanges"]:
         heavy = True
-        reason = "检测到 %d 处脚本改动 —— 造工具场景" % len(py_changes)
+        reason = "%s有 %d 处脚本改动 —— 造工具场景" % (_win, len(py_changes))
     elif md_changes:
         heavy = bool(CFG["expandOnDocsOnly"])
-        reason = "只有 %d 处文档/配置改动 —— 按硬条件看要不要五思" % len(md_changes)
+        reason = "只有 %d 处文档/配置改动（%s）—— 按硬条件看要不要五思" % (len(md_changes), _win)
     else:
         heavy = False
-        reason = "没有未提交的脚本改动"
+        reason = "%s没有脚本改动" % _win
 
     print("=== 开工前 ===")
     print()
@@ -365,7 +459,7 @@ def main():
 
     if not heavy:
         print("✅ %s（今天大概是查 / 看 / 说）" % reason)
-        print("   四问可省；真要改东西了，跑一次 `mem.py start` 会展开完整版")
+        print("   四问可省；真要动手了，跑 `mem.py start --full` 展开完整版")
         print()
         try:
             cnt = count_status_sql()
@@ -375,11 +469,13 @@ def main():
         head = git_head()
         if head:
             print("最近提交：%s" % head)
+        _mark_start_ran()
         return 0
 
     print("🔧 %s" % reason)
     print()
-    checklist, src = load_checklist(CFG)
+    # 注意：变量名别和上面的 src（判断来源）撞——那会让"为什么走重路"变得难查
+    checklist, checklist_src = load_checklist(CFG)
     print(checklist)
     print()
 
@@ -410,6 +506,7 @@ def main():
     if head:
         print("最近提交：%s" % head)
 
+    _mark_start_ran()
     return 0
 
 
