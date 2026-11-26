@@ -128,7 +128,7 @@ total = 0
 for t in TIERS:
     try:
         rows = fetch(t, ["id", "title", "content", "keywords", "importance", "status"])
-    except RuntimeError:
+    except (RuntimeError, FileNotFoundError):
         # 2026-11-26（极限边界测试抓到）：**库损坏不能当"这层是空的"**。
         # 之前被下面的 except Exception 吞掉 → 7 层全跳过 → 输出「审计范围：0 条」
         # → 退出码 0 → 上层（quality）报「写法无必须修项」。**库读不到却报全绿**。

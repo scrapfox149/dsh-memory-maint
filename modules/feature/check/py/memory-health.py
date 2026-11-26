@@ -27,6 +27,9 @@ STALE_DAYS = 90
 
 if not os.path.exists(DB):
     print("找不到记忆库：", DB)
+
+    print("结论：⚠ 没有记忆库，什么都没查")
+    sys.exit(1)
     raise SystemExit(0)
 
 cnt = count_status_sql(DB)      # 契约层用 SQL 数
@@ -83,8 +86,8 @@ dups = 0
 for t in TIERS:
     try:
         items = fetch(t, ["id", "title"], status="active")
-    except RuntimeError:
-        # 2026-11-26（极限边界测试抓到）：库损坏不能当"这层是空的"，要往上抛
+    except (RuntimeError, FileNotFoundError):
+        # 2026-11-26（极限边界测试抓到）：库损坏/不存在都不能当"这层是空的"，要往上抛
         raise
     except Exception:
         import traceback, os as _os, sys as _sys

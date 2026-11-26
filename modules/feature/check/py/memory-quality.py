@@ -78,7 +78,7 @@ def err_like(out):
     if re.search(r"\b(RuntimeError|FileNotFoundError|ValueError|KeyError|"
                  r"OperationalError|DatabaseError|PermissionError)\b", out):
         return True
-    if re.search(r"(记忆库损坏|不是 SQLite|无法读取|记忆库不存在)", out):
+    if re.search(r"(记忆库损坏|不是 SQLite|无法读取|记忆库不存在|找不到记忆库)", out):
         return True
     return False
 
