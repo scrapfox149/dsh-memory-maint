@@ -10,6 +10,7 @@
     "why": "py/memory-why.py",
     "project": "py/memory-project.py",
     "assets": "py/memory-assets.py",
-    "hotfiles": "py/memory-hotfiles.py"
+    "hotfiles": "py/memory-hotfiles.py",
+    "history": "py/memory-history.py"
   }
 }

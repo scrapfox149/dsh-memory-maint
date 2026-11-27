@@ -86,6 +86,7 @@ INTENTS = [
     ("今天有什么要做的", "mem_check daily"),
     ("记忆写得对不对（写法/信号/来源）", "mem_check quality"),
     ("引用的东西还在不在", "mem_check integrity"),
+    ("这条记忆被改过几次", 'mem_query history <id>'),
     ("某条为什么被命中", 'mem_query why "<查询>"'),
     ("这个项目已有什么（文件 + 记忆）", 'mem_query assets <项目>'),
         ("跟这个相关的还有哪些", 'mem_query expand "<关键词>"'),
