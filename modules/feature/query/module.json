@@ -11,6 +11,7 @@
     "project": "py/memory-project.py",
     "assets": "py/memory-assets.py",
     "hotfiles": "py/memory-hotfiles.py",
-    "history": "py/memory-history.py"
+    "history": "py/memory-history.py",
+    "recall": "py/memory-recall.py"
   }
 }

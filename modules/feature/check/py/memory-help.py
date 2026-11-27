@@ -94,6 +94,7 @@ INTENTS = [
     ("文档里提到过某个说法", 'mem_query file "<关键词>"'),
     ("这个项目哪些文件改得最勤", "mem_query hotfiles"),
     ("有没有该退场/重复的", "mem_maint decay / dedup / dream"),
+    ("上周/那天我们记了什么", 'mem_query recall 7d'),
     ("某一天的记忆脉络", "mem_maint timeline"),
     ("备份 / 恢复", "mem_backup export / restore"),
     ("出问题了看告警", "mem_alert"),
