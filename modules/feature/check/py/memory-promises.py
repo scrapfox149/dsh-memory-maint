@@ -57,11 +57,18 @@ if not rows:
 
 print("今天:", today, "| 带期限的约定:", len(rows), "条")
 print()
+# 2026-11-27 修：原来「结论」那段被插进了 for 循环里 →
+# 每条约定都打一次结论，而且用的是不存在的 `due_list` → 永远显示"没有到期约定"。
+# 现在：循环只打印明细，循环外用真实计数。
+_overdue = 0
+_today_due = 0
 for days, due, t, iid, imp, content in rows:
     if days < 0:
         tag = "已过期 %d 天" % (-days)
+        _overdue += 1
     elif days == 0:
         tag = "今天到期"
+        _today_due += 1
     elif days <= 3:
         tag = "剩 %d 天" % days
     else:
@@ -69,6 +76,13 @@ for days, due, t, iid, imp, content in rows:
     print("[%s] %s | %s" % (tag, due, (content or "")[:70].replace("\n", " ")))
     print("      %s %s" % (t, iid[:12]))
 
-    print()
-    _n = len(due_list) if "due_list" in dir() else 0
-    print("结论：%s" % ("⚠ %d 条到期约定" % _n if _n else "✅ 没有到期约定"))
+print()
+if _overdue or _today_due:
+    _parts = []
+    if _overdue:
+        _parts.append("过期 %d 条" % _overdue)
+    if _today_due:
+        _parts.append("今天到期 %d 条" % _today_due)
+    print("结论：⚠ %s（共 %d 条带期限）" % ("/".join(_parts), len(rows)))
+else:
+    print("结论：✅ 没有到期约定（共 %d 条带期限，最近一条还没到）" % len(rows))
