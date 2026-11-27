@@ -93,6 +93,7 @@ INTENTS = [
     ("间接相关、1 跳够不着的", 'mem_query hipporag "<查询>"'),
     ("文档里提到过某个说法", 'mem_query file "<关键词>"'),
     ("这个项目哪些文件改得最勤", "mem_query hotfiles"),
+    ("有没有说法互相打架的", 'mem_query conflict'),
     ("重要但很久没碰的", 'mem_query stale 30'),
     ("有没有该退场/重复的", "mem_maint decay / dedup / dream"),
     ("上周/那天我们记了什么", 'mem_query recall 7d'),

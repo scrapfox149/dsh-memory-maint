@@ -13,6 +13,7 @@
     "hotfiles": "py/memory-hotfiles.py",
     "history": "py/memory-history.py",
     "recall": "py/memory-recall.py",
-    "stale": "py/memory-stale.py"
+    "stale": "py/memory-stale.py",
+    "conflict": "py/memory-conflict.py"
   }
 }
